@@ -1,0 +1,25 @@
+﻿
+  GET|HEAD       / .............................................................................................. home
+  GET|HEAD       dashboard ................................................................................. dashboard
+  GET|HEAD       email/verify ..... verification.notice ΓÇ║ Laravel\Fortify ΓÇ║ EmailVerificationPromptController@__invoke
+  GET|HEAD       email/verify/{id}/{hash} ..... verification.verify ΓÇ║ Laravel\Fortify ΓÇ║ VerifyEmailController@__invoke
+  GET|HEAD       forgot-password ............. password.request ΓÇ║ Laravel\Fortify ΓÇ║ PasswordResetLinkController@create
+  GET|HEAD       login ............................... login ΓÇ║ Laravel\Fortify ΓÇ║ AuthenticatedSessionController@create
+  GET|HEAD       register ............................... register ΓÇ║ Laravel\Fortify ΓÇ║ RegisteredUserController@create
+  GET|HEAD       reset-password/{token} .............. password.reset ΓÇ║ Laravel\Fortify ΓÇ║ NewPasswordController@create
+  ANY            settings .................................................... Illuminate\Routing ΓÇ║ RedirectController
+  GET|HEAD       settings/appearance ................................................................. appearance.edit
+  GET|HEAD       settings/password ............................. user-password.edit ΓÇ║ Settings\PasswordController@edit
+  GET|HEAD       settings/profile ..................................... profile.edit ΓÇ║ Settings\ProfileController@edit
+  GET|HEAD       settings/two-factor ............... two-factor.show ΓÇ║ Settings\TwoFactorAuthenticationController@show
+  GET|HEAD       storage/{path} ........................................................................ storage.local
+  GET|HEAD       two-factor-challenge two-factor.login ΓÇ║ Laravel\Fortify ΓÇ║ TwoFactorAuthenticatedSessionController@crΓÇª
+  GET|HEAD       up .................................................................................................. 
+  GET|HEAD       user/confirm-password ....... password.confirm ΓÇ║ Laravel\Fortify ΓÇ║ ConfirmablePasswordController@show
+  GET|HEAD       user/confirmed-password-status password.confirmation ΓÇ║ Laravel\Fortify ΓÇ║ ConfirmedPasswordStatusContΓÇª
+  GET|HEAD       user/two-factor-qr-code ....... two-factor.qr-code ΓÇ║ Laravel\Fortify ΓÇ║ TwoFactorQrCodeController@show
+  GET|HEAD       user/two-factor-recovery-codes two-factor.recovery-codes ΓÇ║ Laravel\Fortify ΓÇ║ RecoveryCodeController@ΓÇª
+  GET|HEAD       user/two-factor-secret-key two-factor.secret-key ΓÇ║ Laravel\Fortify ΓÇ║ TwoFactorSecretKeyController@shΓÇª
+
+                                                                                                   Showing [21] routes
+
