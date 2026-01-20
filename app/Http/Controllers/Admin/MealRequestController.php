@@ -25,10 +25,43 @@ class MealRequestController extends Controller
         $data = [];
 
         foreach ([$today, $tomorrow] as $date) {
-            $mealRequests = MealBooking::with('user')
+            $mealRequests = MealBooking::with(['user.student', 'user.teacher', 'user.staff'])
                 ->where('hall_id', $hallId)
                 ->where('booking_date', $date)
-                ->get();
+                ->get()
+                ->map(function ($booking) {
+                    $user = $booking->user;
+                    $profile = null;
+                    $memberId = 'N/A';
+                    $preference = 'beef';
+
+                    if ($user->user_type === 'student' && $user->student) {
+                        $profile = $user->student;
+                        $memberId = $profile->student_id;
+                        $preference = $profile->meat_preference;
+                    } elseif ($user->user_type === 'teacher' && $user->teacher) {
+                        $profile = $user->teacher;
+                        $memberId = $profile->teacher_id;
+                        $preference = $profile->meat_preference;
+                    } elseif ($user->user_type === 'staff' && $user->staff) {
+                        $profile = $user->staff;
+                        $memberId = $profile->staff_id;
+                        $preference = $profile->meat_preference;
+                    }
+
+                    return [
+                        'id' => $booking->id,
+                        'user' => [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'member_id' => $memberId,
+                            'meat_preference' => $preference,
+                            'user_type' => $user->user_type,
+                        ],
+                        'quantity' => $booking->quantity,
+                        'meal_type' => $booking->meal_type,
+                    ];
+                });
 
             $summary = MealBooking::where('hall_id', $hallId)
                 ->where('booking_date', $date)

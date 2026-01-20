@@ -11,15 +11,15 @@ import DepositBalanceModal from '@/components/deposit-balance-modal';
 import { Pencil, Search, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export default function StudentList({ students, filters, halls, selectedHallId }: { students: any[], filters: any, halls?: any[], selectedHallId?: number }) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const type = urlParams.get('type');
-    const memberTypeTitle = type === 'student' ? 'Students' : type === 'staff' ? 'Teachers & Staff' : 'Members';
+export default function StudentList({ students, filters, halls, selectedHallId, memberType }: { students: any[], filters: any, halls?: any[], selectedHallId?: number, memberType: 'student' | 'teacher' | 'staff' }) {
+    const memberTypeTitle = memberType === 'student' ? 'Students' : memberType === 'teacher' ? 'Teachers' : 'Staffs';
+    const baseUrl = memberType === 'student' ? '/admin/students' : memberType === 'teacher' ? '/admin/teachers' : '/admin/staff';
+
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: memberTypeTitle,
-            href: admin.students.index().url + (type ? `?type=${type}` : ''),
+            href: baseUrl,
         },
     ];
 
@@ -31,8 +31,8 @@ export default function StudentList({ students, filters, halls, selectedHallId }
     useEffect(() => {
         const timer = setTimeout(() => {
             if (search !== (filters.search || '')) {
-                router.get(admin.students.index().url,
-                    { search, type, hall_id: selectedHallId },
+                router.get(baseUrl,
+                    { search, hall_id: selectedHallId },
                     { preserveState: true, replace: true }
                 );
             }
@@ -73,7 +73,7 @@ export default function StudentList({ students, filters, halls, selectedHallId }
                                 <select
                                     className="h-10 border rounded px-3 text-sm font-bold bg-background focus:ring-1 focus:ring-emerald-500 outline-none min-w-[150px]"
                                     value={selectedHallId}
-                                    onChange={(e) => router.get(admin.students.index().url, { hall_id: e.target.value, type })}
+                                    onChange={(e) => router.get(baseUrl, { hall_id: e.target.value })}
                                 >
                                     {halls.map((hall: any) => (
                                         <option key={hall.id} value={hall.id}>{hall.name}</option>
@@ -101,7 +101,7 @@ export default function StudentList({ students, filters, halls, selectedHallId }
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Name</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground text-center">Type</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Dept / Desig</th>
-                                        {(!type || type === 'student') && (
+                                        {(!memberType || memberType === 'student') && (
                                             <>
                                                 <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Batch</th>
                                                 <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Room</th>
@@ -132,7 +132,7 @@ export default function StudentList({ students, filters, halls, selectedHallId }
                                                     </div>
                                                 )}
                                             </td>
-                                            {(!type || type === 'student') && (
+                                            {(!memberType || memberType === 'student') && (
                                                 <>
                                                     <td className="p-2">{student.batch || '-'}</td>
                                                     <td className="p-2 text-xs font-mono">{student.room_number || '-'}</td>
@@ -169,7 +169,7 @@ export default function StudentList({ students, filters, halls, selectedHallId }
                                     ))}
                                     {students.length === 0 && (
                                         <tr>
-                                            <td colSpan={(!type || type === 'student') ? 9 : 7} className="p-4 text-center text-muted-foreground">
+                                            <td colSpan={memberType === 'student' ? 9 : 7} className="p-4 text-center text-muted-foreground">
                                                 No {memberTypeTitle.toLowerCase()} found.
                                             </td>
                                         </tr>

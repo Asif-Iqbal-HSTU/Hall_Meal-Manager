@@ -57,6 +57,7 @@ class StudentRegistrationController extends Controller
             'filters' => ['search' => $search, 'hall_id' => $hallId],
             'halls' => $user->role === 'super_admin' ? \App\Models\Hall::all() : [],
             'selectedHallId' => (int) $hallId,
+            'memberType' => 'student',
         ]);
     }
 

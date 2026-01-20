@@ -37,12 +37,17 @@ export function AppSidebar() {
     if (userRole === 'super_admin' || userRole === 'hall_admin') {
         mainNavItems.push({
             title: 'Students',
-            href: admin.students.index().url + '?type=student',
+            href: admin.students.index().url,
             icon: Users,
         });
         mainNavItems.push({
-            title: 'Teachers & Staff',
-            href: admin.students.index().url + '?type=staff',
+            title: 'Teachers',
+            href: '/admin/teachers',
+            icon: Users,
+        });
+        mainNavItems.push({
+            title: 'Staffs',
+            href: '/admin/staff',
             icon: Users,
         });
     }

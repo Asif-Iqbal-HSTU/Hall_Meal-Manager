@@ -140,10 +140,9 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                                 <tbody className="divide-y">
                                     {filteredRequests.map((request: any) => (
                                         <tr key={request.id} className="transition-colors hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10">
-                                            <td className="px-6 py-4 font-mono text-xs font-semibold">{request.user.student_id}</td>
+                                            <td className="px-6 py-4 font-mono text-xs font-semibold">{request.user.member_id}</td>
                                             <td className="px-6 py-4">
                                                 <div className="font-medium text-foreground">{request.user.name}</div>
-                                                <div className="text-xs text-muted-foreground">{request.user.department} - {request.user.batch}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <Badge variant="outline" className="capitalize text-[10px] h-5 px-1.5 border-muted-foreground/30 text-muted-foreground">
