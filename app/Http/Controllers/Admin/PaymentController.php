@@ -27,7 +27,15 @@ class PaymentController extends Controller
                 'note' => $request->note,
             ]);
 
-            $student->increment('balance', $request->amount);
+            $profile = match ($student->user_type) {
+                'teacher' => $student->teacher,
+                'staff' => $student->staff,
+                default => $student->student,
+            };
+
+            if ($profile) {
+                $profile->increment('balance', $request->amount);
+            }
         });
 
         return back()->with('success', 'Payment recorded and balance updated.');

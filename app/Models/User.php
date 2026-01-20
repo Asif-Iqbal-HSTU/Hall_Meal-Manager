@@ -24,12 +24,7 @@ class User extends Authenticatable
         'password',
         'hall_id',
         'role',
-        'meat_preference',
-        'student_id',
-        'department',
-        'batch',
-        'room_number',
-        'balance',
+        'user_type',
     ];
 
     /**
@@ -66,5 +61,20 @@ class User extends Authenticatable
     public function mealBookings()
     {
         return $this->hasMany(MealBooking::class);
+    }
+
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
+    }
+
+    public function staff()
+    {
+        return $this->hasOne(Staff::class);
     }
 }

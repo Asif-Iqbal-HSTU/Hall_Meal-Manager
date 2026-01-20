@@ -30,7 +30,15 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Illuminate\Support\Facades\Gate::define('access-student', function ($user) {
-            return $user->role === 'student';
+            return in_array($user->role, ['student', 'teacher', 'staff']);
+        });
+
+        \Illuminate\Support\Facades\Gate::define('access-teacher', function ($user) {
+            return $user->role === 'teacher';
+        });
+
+        \Illuminate\Support\Facades\Gate::define('access-staff', function ($user) {
+            return $user->role === 'staff';
         });
     }
 

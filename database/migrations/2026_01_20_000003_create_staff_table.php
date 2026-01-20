@@ -10,8 +10,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('meat_preference', ['beef', 'mutton'])->nullable()->after('role');
+        Schema::create('staff', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('designation');
+            $table->decimal('balance', 10, 2)->default(0);
+            $table->timestamps();
         });
     }
 
@@ -20,8 +24,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('meat_preference');
-        });
+        Schema::dropIfExists('staff');
     }
 };

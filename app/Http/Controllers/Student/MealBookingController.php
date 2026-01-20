@@ -75,7 +75,16 @@ class MealBookingController extends Controller
             // Actually, a better way is to calculate balance dynamically or handle diffs.
             // I'll stick to a simple deduction for now.
 
-            auth()->user()->decrement('balance', $request->quantity * $currentPrice);
+            $user = auth()->user();
+            $profile = match ($user->user_type) {
+                'teacher' => $user->teacher,
+                'staff' => $user->staff,
+                default => $user->student,
+            };
+
+            if ($profile) {
+                $profile->decrement('balance', $request->quantity * $currentPrice);
+            }
         });
 
         return back()->with('success', 'Meal booked successfully for tomorrow.');

@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { router } from '@inertiajs/react';
 
 interface ParsedStudent {
-    unique_id: string;
     room_number: string;
     student_id: string;
     name: string;
@@ -28,42 +27,35 @@ export default function BulkImportModal() {
 
         lines.forEach((line) => {
             const cols = line.split('\t').map((c) => c.trim());
-            // Skip headers if any
-            if (cols[0] === 'Unique ID' || cols[2] === 'Student ID') return;
+            // Skip headers if any (Assuming: Room, Student ID, Name, Dept, Batch)
+            if (cols[0] === 'Room' || cols[1] === 'Student ID') return;
 
             // SKIP ROWS: Skip if Student ID or Name is missing
-            if (!cols[2] || !cols[3]) return;
+            // Adjust indices based on expected paste format without Unique ID
+            // Old indices: 0: Unique ID, 1: Room, 2: Student ID, 3: Name, 4: Dept, 5: Batch
+            // New expected indices (Room, Student ID, Name, Dept, Batch):
+            // 0: Room, 1: Student ID, 2: Name, 3: Dept, 4: Batch
+            if (!cols[1] || !cols[2]) return;
 
-            const room = cols[1] || lastRoom;
+            const room = cols[0] || lastRoom;
             if (room) lastRoom = room;
 
-            let name = cols[3];
+            let name = cols[2];
             let meatPreference = 'beef';
 
-            // MUTTON DETECTION: If name ends with 'M' (case sensitive)
             if (name.endsWith(' M') || name.endsWith('M')) {
                 meatPreference = 'mutton';
-                // Optionally clean the name, but keep it if user didn't explicitly say to remove it.
-                // However, usually "Md Jony M" should probably be "Md Jony".
-                // I'll trim it if it ends with " M" else just keep it.
                 if (name.endsWith(' M')) {
                     name = name.slice(0, -2).trim();
-                } else if (name.endsWith('M')) {
-                    // check if there is a space before the M, if not it might be part of the name (e.g. Rupok Rupom?)
-                    // Saedi Muttakim Rupok - No M.
-                    // If it ends with " M" it's clearer. If just "M" I'll be careful.
-                    // Let's assume there is a space or it's a separate char.
-                    // I'll only slice if it's " M".
                 }
             }
 
             results.push({
-                unique_id: cols[0] || '',
                 room_number: room || '',
-                student_id: cols[2] || '',
+                student_id: cols[1] || '',
                 name: name,
-                department: cols[4] || '',
-                batch: cols[5] || '',
+                department: cols[3] || '',
+                batch: cols[4] || '',
                 meat_preference: meatPreference,
             });
         });
@@ -93,13 +85,13 @@ export default function BulkImportModal() {
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Bulk Import Students</DialogTitle>
+                    <DialogTitle>Bulk Import Members</DialogTitle>
                 </DialogHeader>
 
                 {step === 1 ? (
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Paste data from Excel (Copy columns: Unique ID, Room, Student ID, Name, Dept, Batch)</Label>
+                            <Label>Paste data from Excel (Copy columns: Room, Student ID, Name, Dept, Batch)</Label>
                             <textarea
                                 className="w-full h-64 p-2 border rounded-md font-mono text-xs"
                                 placeholder="Paste here..."
@@ -116,7 +108,7 @@ export default function BulkImportModal() {
                                 <thead className="bg-muted">
                                     <tr>
                                         <th className="p-2 border-b text-left">Room</th>
-                                        <th className="p-2 border-b text-left">Student ID</th>
+                                        <th className="p-2 border-b text-left">ID / Ref</th>
                                         <th className="p-2 border-b text-left">Name</th>
                                         <th className="p-2 border-b text-left">Dept</th>
                                         <th className="p-2 border-b text-left">Batch</th>
@@ -149,7 +141,7 @@ export default function BulkImportModal() {
                                         Importing...
                                     </>
                                 ) : (
-                                    `Confirm & Import ${parsedData.length} Students`
+                                    `Confirm & Import ${parsedData.length} Members`
                                 )}
                             </Button>
                             <Button variant="ghost" onClick={() => setStep(1)} disabled={isImporting}>Back</Button>
