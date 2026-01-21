@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MealBooking;
+use App\Models\Hall;
 use Carbon\Carbon;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MealRequestController extends Controller
 {
@@ -95,5 +97,76 @@ class MealRequestController extends Controller
             'halls' => $user->role === 'super_admin' ? \App\Models\Hall::all() : [],
             'selectedHallId' => (int) $hallId,
         ]);
+    }
+
+    public function exportPdf(\Illuminate\Http\Request $request)
+    {
+        $user = auth()->user();
+        $hallId = $user->hall_id;
+
+        if ($user->role === 'super_admin') {
+            $hallId = $request->query('hall_id', Hall::first()?->id);
+        }
+
+        $hall = Hall::findOrFail($hallId);
+        $tomorrow = Carbon::tomorrow()->toDateString();
+
+        // Check window constraint (after 4 PM for preliminary list)
+        $now = Carbon::now();
+        if ($now->hour < 16) {
+            return back()->with('error', 'Preliminary export is available after 4:00 PM. Final list is available after 11:59 PM.');
+        }
+
+        $mealTypes = ['breakfast', 'lunch', 'dinner'];
+        $data = [];
+
+        foreach ($mealTypes as $type) {
+            $bookings = MealBooking::with(['user.student', 'user.teacher', 'user.staff'])
+                ->where('hall_id', $hallId)
+                ->where('booking_date', $tomorrow)
+                ->where('meal_type', $type)
+                ->get()
+                ->map(function ($booking) {
+                    $user = $booking->user;
+                    $memberId = 'N/A';
+                    $preference = 'beef';
+
+                    if ($user->user_type === 'student' && $user->student) {
+                        $memberId = $user->student->student_id;
+                        $preference = $user->student->meat_preference;
+                    } elseif ($user->user_type === 'teacher' && $user->teacher) {
+                        $memberId = $user->teacher->teacher_id;
+                        $preference = $user->teacher->meat_preference;
+                    } elseif ($user->user_type === 'staff' && $user->staff) {
+                        $memberId = $user->staff->staff_id;
+                        $preference = $user->staff->meat_preference;
+                    }
+
+                    return [
+                        'name' => $user->name,
+                        'member_id' => $memberId,
+                        'user_type' => $user->user_type,
+                        'meat_preference' => $preference,
+                        'quantity' => $booking->quantity,
+                    ];
+                });
+
+            $meatCounts = $bookings->groupBy('meat_preference')->map->sum('quantity');
+
+            $data[$type] = [
+                'bookings' => $bookings,
+                'beef_count' => $meatCounts->get('beef', 0),
+                'mutton_count' => $meatCounts->get('mutton', 0),
+                'total_count' => $bookings->sum('quantity'),
+            ];
+        }
+
+        $pdf = Pdf::loadView('pdf.meal-list', [
+            'hall' => $hall,
+            'date' => $tomorrow,
+            'data' => $data,
+        ]);
+
+        return $pdf->download("meal-list-{$hall->name}-{$tomorrow}.pdf");
     }
 }

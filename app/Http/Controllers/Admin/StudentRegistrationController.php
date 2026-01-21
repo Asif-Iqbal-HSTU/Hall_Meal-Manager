@@ -8,6 +8,8 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\MemberWelcomeMail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -104,7 +106,9 @@ class StudentRegistrationController extends Controller
                     'balance' => 0,
                 ]);
 
-                // Email sending ignored as per request
+                if ($user->email) {
+                    Mail::to($user->email)->send(new MemberWelcomeMail($user, $password));
+                }
             });
 
             return redirect()->route('admin.students.index')->with('success', 'Student registered successfully. Password: ' . ($request->use_id_as_password ? 'Same as ID' : $password));

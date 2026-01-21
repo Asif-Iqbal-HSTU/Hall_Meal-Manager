@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Student;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\MealBooking;
@@ -9,11 +9,13 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
-class MealBookingController extends Controller
+class StaffDashboardController extends Controller
 {
     public function index()
     {
         $userId = auth()->id();
+        $user = auth()->user()->load(['staff', 'hall']);
+
         $upcomingBookings = MealBooking::where('user_id', $userId)
             ->where('booking_date', '>=', now()->toDateString())
             ->get();
@@ -62,20 +64,13 @@ class MealBookingController extends Controller
                 ->get(['date', 'calculated_price']),
         ];
 
-        $user = auth()->user()->load(['student', 'hall']);
-        $leaderboards = [
-            'snake' => GameScoreController::getLeaderboard('snake'),
-            'tictactoe' => GameScoreController::getLeaderboard('tictactoe'),
-        ];
-
-        return Inertia::render('student/dashboard', [
+        return Inertia::render('staff/dashboard', [
             'user' => $user,
             'bookings' => $upcomingBookings,
             'pastBookings' => $pastBookings,
             'monthlyCosts' => $monthlyCosts,
             'stats' => $stats,
             'historicalRates' => $historicalRates,
-            'leaderboards' => $leaderboards,
         ]);
     }
 
@@ -106,7 +101,7 @@ class MealBookingController extends Controller
                 [
                     'hall_id' => auth()->user()->hall_id,
                     'quantity' => $request->quantity,
-                    'price' => 0, // Price will be adjusted after daily cost calculation
+                    'price' => 0,
                 ]
             );
         });

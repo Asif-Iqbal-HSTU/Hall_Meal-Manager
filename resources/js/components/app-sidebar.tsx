@@ -50,6 +50,16 @@ export function AppSidebar() {
             href: '/admin/staff',
             icon: Users,
         });
+        mainNavItems.push({
+            title: 'Meal Expenses',
+            href: '/admin/meal-expenses',
+            icon: Utensils,
+        });
+        mainNavItems.push({
+            title: 'Monthly Costs',
+            href: '/admin/monthly-costs',
+            icon: BookOpen,
+        });
     }
 
     if (userRole === 'student') {

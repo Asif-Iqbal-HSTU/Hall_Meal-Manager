@@ -1,28 +1,23 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import student from '@/routes/student';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
-import { Coffee, Utensils, Moon, Wallet, History, CreditCard, Info, TrendingUp, Gamepad2, Trophy, Medal } from 'lucide-react';
+import { Coffee, Utensils, Moon, Wallet, History, CreditCard, Info, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import TicTacToe from '@/components/TicTacToe';
-import Snake from '@/components/Snake';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Student Dashboard',
-        href: student.dashboard().url,
+        title: 'Teacher Dashboard',
+        href: '/teacher/dashboard',
     },
 ];
 
-export default function StudentDashboard({ user, bookings, pastBookings, monthlyCosts, stats, historicalRates, leaderboards }: { user: any, bookings: any[], pastBookings: any[], monthlyCosts: any[], stats: any, historicalRates: any, leaderboards: any }) {
+export default function TeacherDashboard({ user, bookings, pastBookings, monthlyCosts, stats, historicalRates }: { user: any, bookings: any[], pastBookings: any[], monthlyCosts: any[], stats: any, historicalRates: any }) {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeGame, setActiveGame] = useState<'tictactoe' | 'snake'>('tictactoe');
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -37,15 +32,15 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(student.mealBookings.store().url);
+        post('/teacher/meal-bookings');
     };
 
-    const isDue = user.student.balance < 0;
-    const absBalance = Math.abs(user.student.balance);
+    const isDue = user.teacher.balance < 0;
+    const absBalance = Math.abs(user.teacher.balance);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Student Dashboard" />
+            <Head title="Teacher Dashboard" />
             <div className="p-6 space-y-6">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-card p-4 rounded-xl border gap-4">
@@ -54,11 +49,10 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                         <div className="flex flex-col gap-1 mt-1">
                             <p className="text-sm font-medium text-foreground">{user.hall?.name || 'No Hall Assigned'}</p>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground uppercase tracking-wider">
-                                <span><span className="font-semibold">ID:</span> {user.student.student_id}</span>
-                                <span><span className="font-semibold">Dept:</span> {user.student.department}</span>
-                                <span><span className="font-semibold">Batch:</span> {user.student.batch}</span>
-                                <span><span className="font-semibold">Room:</span> {user.student.room_number}</span>
-                                <span><span className="font-semibold">Pref:</span> {user.student.meat_preference}</span>
+                                <span><span className="font-semibold">ID:</span> {user.teacher.teacher_id}</span>
+                                <span><span className="font-semibold">Designation:</span> {user.teacher.designation}</span>
+                                <span><span className="font-semibold">Dept:</span> {user.teacher.department}</span>
+                                <span><span className="font-semibold">Pref:</span> {user.teacher.meat_preference}</span>
                             </div>
                         </div>
                     </div>
@@ -82,7 +76,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                 {absBalance.toFixed(2)} TK
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                                {isDue ? 'Please deposit funds at the office' : 'Sufficient funds available'}
+                                {isDue ? 'Please settle with the mess manager' : 'Sufficient funds available'}
                             </p>
                         </CardContent>
                     </Card>
@@ -120,7 +114,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Utensils className="h-5 w-5" />
-                                Book Student Meal
+                                Book Teacher's Meal
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -276,7 +270,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                     </thead>
                                     <tbody className="opacity-80">
                                         {pastBookings.map((booking: any) => {
-                                            const isMuttonMeal = (booking.meal_type === 'lunch' || booking.meal_type === 'dinner') && user.student.meat_preference?.toLowerCase() === 'mutton';
+                                            const isMuttonMeal = (booking.meal_type === 'lunch' || booking.meal_type === 'dinner') && user.teacher.meat_preference?.toLowerCase() === 'mutton';
                                             return (
                                                 <tr key={booking.id} className="border-b hover:bg-muted/10 transition-colors">
                                                     <td className="p-2 font-mono text-xs">{booking.booking_date}</td>
@@ -309,54 +303,6 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                         </CardContent>
                     </Card>
                 </div>
-            </div>
-
-            {/* Floating Action Button for Game */}
-            <div className="fixed bottom-6 right-6 z-40">
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            size="icon"
-                            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white border-none"
-                            title="Take a break with Tic Tac Toe!"
-                        >
-                            <Gamepad2 className="h-7 w-7" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[700px] p-4 max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="text-center font-bold text-lg mb-2 flex items-center justify-center gap-2">
-                                <Gamepad2 className="h-5 w-5 text-indigo-600" />
-                                BAUST Student Game Hub
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="flex justify-center gap-2 mb-4 bg-muted p-1 rounded-lg">
-                            <Button
-                                variant={activeGame === 'tictactoe' ? 'default' : 'ghost'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setActiveGame('tictactoe')}
-                            >
-                                Tic Tac Toe
-                            </Button>
-                            <Button
-                                variant={activeGame === 'snake' ? 'default' : 'ghost'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setActiveGame('snake')}
-                            >
-                                Snake
-                            </Button>
-                        </div>
-                        <div className="min-h-[400px] flex items-center justify-center">
-                            {activeGame === 'tictactoe' ? (
-                                <TicTacToe leaderboard={leaderboards.tictactoe} />
-                            ) : (
-                                <Snake leaderboard={leaderboards.snake} />
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog>
             </div>
         </AppLayout>
     );

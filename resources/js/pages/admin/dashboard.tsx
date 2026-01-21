@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarDays, Users, Utensils } from 'lucide-react';
 
 import { router } from '@inertiajs/react';
+import { FileDown } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -66,6 +67,25 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                             Tomorrow
                         </Button>
                     </div>
+
+                    {activeDate === 'tomorrow' && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 border-emerald-200 hover:bg-emerald-50 text-emerald-700"
+                            onClick={() => {
+                                const now = new Date();
+                                if (now.getHours() < 16) {
+                                    alert('Preliminary export is available after 4:00 PM. Final list is available after 11:59 PM.');
+                                    return;
+                                }
+                                window.location.href = `/admin/meal-requests/export?hall_id=${selectedHallId}`;
+                            }}
+                        >
+                            <FileDown className="h-4 w-4" />
+                            Export PDF
+                        </Button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

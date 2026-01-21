@@ -8,6 +8,8 @@ use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\MemberWelcomeMail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -93,6 +95,10 @@ class TeacherRegistrationController extends Controller
                     'meat_preference' => $request->meat_preference,
                     'balance' => 0,
                 ]);
+
+                if ($user->email) {
+                    Mail::to($user->email)->send(new MemberWelcomeMail($user, $password));
+                }
             });
 
             return redirect()->back()->with('success', 'Teacher registered successfully. Password: ' . $password);

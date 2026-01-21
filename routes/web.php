@@ -19,12 +19,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         if (in_array($role, ['super_admin', 'hall_admin'])) {
             return redirect()->route('admin.dashboard');
         }
+        if ($role === 'teacher') {
+            return redirect()->route('teacher.dashboard');
+        }
+        if ($role === 'staff') {
+            return redirect()->route('staff.dashboard');
+        }
         return redirect()->route('student.dashboard');
     })->name('dashboard');
 
     // Admin Routes
     Route::middleware(['can:access-admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', [MealRequestController::class, 'index'])->name('dashboard');
+        Route::get('meal-requests/export', [MealRequestController::class, 'exportPdf'])->name('meal-requests.export');
 
         // Students
         Route::get('students', [StudentRegistrationController::class, 'index'])->name('students.index');
@@ -44,12 +51,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('staff/{staff}', [\App\Http\Controllers\Admin\StaffRegistrationController::class, 'update'])->name('staff.update');
 
         Route::post('students/{student}/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'store'])->name('students.payments.store');
+
+        // Meal Expenses
+        Route::get('meal-expenses', [\App\Http\Controllers\Admin\MealExpenseController::class, 'index'])->name('meal-expenses.index');
+        Route::get('meal-expenses/create', [\App\Http\Controllers\Admin\MealExpenseController::class, 'create'])->name('meal-expenses.create');
+        Route::post('meal-expenses', [\App\Http\Controllers\Admin\MealExpenseController::class, 'store'])->name('meal-expenses.store');
+        Route::get('meal-expenses/{dailyCost}/edit', [\App\Http\Controllers\Admin\MealExpenseController::class, 'edit'])->name('meal-expenses.edit');
+        Route::put('meal-expenses/{dailyCost}', [\App\Http\Controllers\Admin\MealExpenseController::class, 'update'])->name('meal-expenses.update');
+        Route::post('meal-expenses/{dailyCost}/finalize', [\App\Http\Controllers\Admin\MealExpenseController::class, 'finalize'])->name('meal-expenses.finalize');
+
+        // Monthly Costs
+        Route::get('monthly-costs', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'index'])->name('monthly-costs.index');
+        Route::post('monthly-costs', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'store'])->name('monthly-costs.store');
+        Route::post('monthly-costs/{monthlyCost}/finalize', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'finalize'])->name('monthly-costs.finalize');
+        Route::put('halls/{hall}/settings', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'updateHallSettings'])->name('halls.update-settings');
     });
 
     // Student Routes
     Route::middleware(['can:access-student'])->prefix('student')->name('student.')->group(function () {
         Route::get('dashboard', [MealBookingController::class, 'index'])->name('dashboard');
         Route::post('meal-bookings', [MealBookingController::class, 'store'])->name('meal-bookings.store');
+        Route::post('game-scores', [\App\Http\Controllers\Student\GameScoreController::class, 'store'])->name('game-scores.store');
+    });
+
+    // Teacher Routes
+    Route::middleware(['can:access-teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+        Route::get('dashboard', [\App\Http\Controllers\Teacher\TeacherDashboardController::class, 'index'])->name('dashboard');
+        Route::post('meal-bookings', [\App\Http\Controllers\Teacher\TeacherDashboardController::class, 'store'])->name('meal-bookings.store');
+    });
+
+    // Staff Routes
+    Route::middleware(['can:access-staff'])->prefix('staff')->name('staff.')->group(function () {
+        Route::get('dashboard', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'index'])->name('dashboard');
+        Route::post('meal-bookings', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'store'])->name('meal-bookings.store');
     });
 });
 
