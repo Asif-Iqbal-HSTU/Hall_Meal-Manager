@@ -19,6 +19,11 @@ class MonthlyCost extends Model
         'other_charge',
         'total_amount',
         'status',
+        'other_items',
+    ];
+
+    protected $casts = [
+        'other_items' => 'array',
     ];
 
     public function hall()

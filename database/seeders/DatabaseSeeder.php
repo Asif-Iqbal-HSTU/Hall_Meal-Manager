@@ -14,10 +14,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             HallSeeder::class,
             AdminSeeder::class,
-            MemberSeeder::class,
-            MealExpenseSeeder::class,
-            MealBookingSeeder::class,
-            MonthlyCostSeeder::class,
+            // MemberSeeder::class,
+            // MealExpenseSeeder::class,
+            // MealBookingSeeder::class,
+            // MonthlyCostSeeder::class,
         ]);
     }
 }

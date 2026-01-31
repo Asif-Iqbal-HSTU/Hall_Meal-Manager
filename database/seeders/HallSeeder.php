@@ -12,26 +12,33 @@ class HallSeeder extends Seeder
         $halls = [
             [
                 'name' => 'Shahid Dr Zikrul Haque Hall',
-                'seat_rent' => 150.00,
+                'prefix' => 'ZH',
+                'seat_rent' => 2200.00,
             ],
             [
                 'name' => 'Abbas Uddin Ahmed Hall',
-                'seat_rent' => 150.00,
+                'prefix' => 'AB',
+                'seat_rent' => 2200.00,
             ],
             [
                 'name' => 'Bir Protik Taramon Bibi Hall',
-                'seat_rent' => 200.00,
+                'prefix' => 'TB',
+                'seat_rent' => 2200.00,
             ],
             [
                 'name' => 'Annex Hall',
-                'seat_rent' => 100.00,
+                'prefix' => 'NX',
+                'seat_rent' => 2200.00,
             ],
         ];
 
         foreach ($halls as $hallData) {
             Hall::updateOrCreate(
                 ['name' => $hallData['name']],
-                ['seat_rent' => $hallData['seat_rent']]
+                [
+                    'seat_rent' => $hallData['seat_rent'],
+                    'prefix' => $hallData['prefix'],
+                ]
             );
         }
     }

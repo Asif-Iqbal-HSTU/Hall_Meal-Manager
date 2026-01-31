@@ -65,12 +65,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('monthly-costs', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'store'])->name('monthly-costs.store');
         Route::post('monthly-costs/{monthlyCost}/finalize', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'finalize'])->name('monthly-costs.finalize');
         Route::put('halls/{hall}/settings', [\App\Http\Controllers\Admin\MonthlyCostController::class, 'updateHallSettings'])->name('halls.update-settings');
+
+        // Daily Meal Management
+        Route::get('daily-meals', [\App\Http\Controllers\Admin\DailyMealController::class, 'index'])->name('daily-meals.index');
+        Route::post('daily-meals/toggle', [\App\Http\Controllers\Admin\DailyMealController::class, 'toggle'])->name('daily-meals.toggle');
+
+        // Status Management
+        Route::post('members/{user}/toggle-status', [\App\Http\Controllers\Admin\MemberStatusController::class, 'toggle'])->name('members.toggle-status');
     });
 
     // Student Routes
     Route::middleware(['can:access-student'])->prefix('student')->name('student.')->group(function () {
         Route::get('dashboard', [MealBookingController::class, 'index'])->name('dashboard');
         Route::post('meal-bookings', [MealBookingController::class, 'store'])->name('meal-bookings.store');
+        Route::delete('meal-bookings/{booking}', [MealBookingController::class, 'destroy'])->name('meal-bookings.destroy');
         Route::post('game-scores', [\App\Http\Controllers\Student\GameScoreController::class, 'store'])->name('game-scores.store');
     });
 

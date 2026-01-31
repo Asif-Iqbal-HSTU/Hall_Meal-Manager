@@ -12,6 +12,7 @@ class Hall extends Model
     protected $fillable = [
         'name',
         'seat_rent',
+        'prefix',
     ];
 
     public function students()

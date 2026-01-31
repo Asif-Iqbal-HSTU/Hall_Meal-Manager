@@ -40,7 +40,9 @@ class MonthlyCostController extends Controller
             'fuel_charge' => 'required|numeric|min:0',
             'spice_charge' => 'required|numeric|min:0',
             'cleaning_charge' => 'required|numeric|min:0',
-            'other_charge' => 'required|numeric|min:0',
+            'other_items' => 'nullable|array',
+            'other_items.*.name' => 'required|string|max:255',
+            'other_items.*.amount' => 'required|numeric|min:0',
         ]);
 
         $hallId = auth()->user()->hall_id;
@@ -48,7 +50,10 @@ class MonthlyCostController extends Controller
             $hallId = $request->hall_id;
         }
 
-        $total = $request->fuel_charge + $request->spice_charge + $request->cleaning_charge + $request->other_charge;
+        $otherItems = $request->other_items ?? [];
+        $otherChargeTotal = collect($otherItems)->sum('amount');
+
+        $total = $request->fuel_charge + $request->spice_charge + $request->cleaning_charge + $otherChargeTotal;
 
         MonthlyCost::updateOrCreate(
             [
@@ -60,7 +65,8 @@ class MonthlyCostController extends Controller
                 'fuel_charge' => $request->fuel_charge,
                 'spice_charge' => $request->spice_charge,
                 'cleaning_charge' => $request->cleaning_charge,
-                'other_charge' => $request->other_charge,
+                'other_charge' => $otherChargeTotal,
+                'other_items' => $otherItems,
                 'total_amount' => $total,
                 'status' => 'draft',
             ]

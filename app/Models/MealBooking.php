@@ -13,6 +13,7 @@ class MealBooking extends Model
         'quantity',
         'price',
         'booking_date',
+        'is_taken',
     ];
 
     public function user()

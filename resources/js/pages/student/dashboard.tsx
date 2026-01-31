@@ -1,17 +1,18 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import student from '@/routes/student';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
-import { Coffee, Utensils, Moon, Wallet, History, CreditCard, Info, TrendingUp, Gamepad2, Trophy, Medal } from 'lucide-react';
+import { Coffee, Utensils, Moon, Wallet, History, CreditCard, Info, TrendingUp, Gamepad2, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TicTacToe from '@/components/TicTacToe';
 import Snake from '@/components/Snake';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import BookingCalendar from '@/components/BookingCalendar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,14 +31,27 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
     }, []);
 
     const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const { data, setData, post, processing, errors } = useForm({
-        meal_type: 'lunch',
-        quantity: 1,
+
+    // Range Booking Form
+    const { data, setData, post, processing, errors, reset } = useForm({
+        start_date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0], // Tomorrow
+        end_date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],   // Tomorrow
+        breakfast: 0,
+        lunch: 1,
+        dinner: 1,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(student.mealBookings.store().url);
+        post(student.mealBookings.store().url, {
+            onSuccess: () => reset(),
+        });
+    };
+
+    const cancelBooking = (id: number) => {
+        if (confirm('Are you sure you want to cancel this meal?')) {
+            router.delete(student.mealBookings.destroy(id).url);
+        }
     };
 
     const isDue = user.student.balance < 0;
@@ -50,21 +64,16 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-card p-4 rounded-xl border gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold">Welcome, {user.name}</h2>
+                        <h2 className="text-2xl font-bold italic tracking-tight">Welcome, {user.name}</h2>
                         <div className="flex flex-col gap-1 mt-1">
                             <p className="text-sm font-medium text-foreground">{user.hall?.name || 'No Hall Assigned'}</p>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground uppercase tracking-wider">
+                                {user.unique_id && <span><span className="font-semibold text-primary">UID:</span> {user.unique_id}</span>}
                                 <span><span className="font-semibold">ID:</span> {user.student.student_id}</span>
                                 <span><span className="font-semibold">Dept:</span> {user.student.department}</span>
-                                <span><span className="font-semibold">Batch:</span> {user.student.batch}</span>
                                 <span><span className="font-semibold">Room:</span> {user.student.room_number}</span>
-                                <span><span className="font-semibold">Pref:</span> {user.student.meat_preference}</span>
                             </div>
                         </div>
-                    </div>
-                    <div className="text-right hidden md:block">
-                        <div className="text-3xl font-mono font-bold text-primary">{timeString}</div>
-                        <p className="text-sm text-muted-foreground">{currentTime.toDateString()}</p>
                     </div>
                 </div>
 
@@ -116,50 +125,82 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Booking Form */}
-                    <Card>
+                    <Card className="h-full">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Utensils className="h-5 w-5" />
-                                Book Student Meal
+                                <CalendarIcon className="h-5 w-5" />
+                                Plan Your Meals
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={submit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="meal_type">Meal Type</Label>
-                                        <select
-                                            id="meal_type"
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            value={data.meal_type}
-                                            onChange={(e) => setData('meal_type', e.target.value)}
-                                        >
-                                            <option value="breakfast">Breakfast</option>
-                                            <option value="lunch">Lunch</option>
-                                            <option value="dinner">Dinner</option>
-                                        </select>
+                                        <Label htmlFor="start_date">From Date</Label>
+                                        <Input
+                                            id="start_date"
+                                            type="date"
+                                            value={data.start_date}
+                                            onChange={(e) => setData('start_date', e.target.value)}
+                                        />
+                                        {errors.start_date && <p className="text-red-500 text-xs">{errors.start_date}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="quantity">Quantity</Label>
+                                        <Label htmlFor="end_date">To Date</Label>
                                         <Input
-                                            id="quantity"
-                                            type="number"
-                                            min="1"
-                                            max="10"
-                                            value={data.quantity}
-                                            onChange={(e) => setData('quantity', parseInt(e.target.value))}
+                                            id="end_date"
+                                            type="date"
+                                            value={data.end_date}
+                                            onChange={(e) => setData('end_date', e.target.value)}
                                         />
-                                        {errors.quantity && <p className="text-red-500 text-xs">{errors.quantity}</p>}
+                                        {errors.end_date && <p className="text-red-500 text-xs">{errors.end_date}</p>}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <Button type="submit" disabled={processing} className="w-full sm:w-auto">
-                                        Confirm Booking
-                                    </Button>
-                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                        <Info className="h-3 w-3" />
-                                        <span>Booking window: 08 AM - 11:59 PM</span>
+                                <div className="space-y-2">
+                                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Daily Meal Quantities</Label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <Label className="text-[10px]" htmlFor="breakfast">Breakfast</Label>
+                                            <Input
+                                                id="breakfast"
+                                                type="number"
+                                                min="0"
+                                                max="5"
+                                                value={data.breakfast}
+                                                onChange={(e) => setData('breakfast', parseInt(e.target.value))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px]" htmlFor="lunch">Lunch</Label>
+                                            <Input
+                                                id="lunch"
+                                                type="number"
+                                                min="0"
+                                                max="5"
+                                                value={data.lunch}
+                                                onChange={(e) => setData('lunch', parseInt(e.target.value))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px]" htmlFor="dinner">Dinner</Label>
+                                            <Input
+                                                id="dinner"
+                                                type="number"
+                                                min="0"
+                                                max="5"
+                                                value={data.dinner}
+                                                onChange={(e) => setData('dinner', parseInt(e.target.value))}
+                                            />
+                                        </div>
                                     </div>
+                                </div>
+                                <div className="pt-2">
+                                    <Button type="submit" disabled={processing} className="w-full">
+                                        Update Bookings
+                                    </Button>
+                                    <p className="text-center text-[10px] text-muted-foreground mt-2">
+                                        * Set quantity to 0 to remove a meal.
+                                    </p>
                                 </div>
                                 {(usePage().props.errors as any).error && (
                                     <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">
@@ -170,59 +211,36 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                         </CardContent>
                     </Card>
 
-                    {/* Recent Rates Summary */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                                <TrendingUp className="h-4 w-4 text-green-500" />
-                                Calculated Meal Rates (Last 3 Finalized)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {['breakfast', 'lunch', 'dinner'].map((type) => (
-                                <div key={type} className="space-y-2 border-b last:border-0 pb-2 last:pb-0">
-                                    <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">{type}</h4>
-                                    <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {historicalRates[type]?.length > 0 ? (
-                                            historicalRates[type].map((rate: any, idx: number) => (
-                                                <div key={idx} className="flex-1 min-w-[80px] p-2 bg-muted/30 rounded-md text-center border">
-                                                    <p className="text-[8px] text-muted-foreground">{new Date(rate.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
-                                                    <p className="text-sm font-bold">{parseFloat(rate.calculated_price).toFixed(2)} TK</p>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-[10px] text-muted-foreground italic px-2">No finalized records yet</p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+                    {/* Calendar View */}
+                    <div className="h-full">
+                        <BookingCalendar bookings={bookings} />
+                    </div>
                 </div>
 
-                {/* Bookings Table */}
-                <div className="grid grid-cols-1 gap-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <History className="h-5 w-5" />
-                                Upcoming Bookings
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="relative w-full overflow-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="h-10 px-2 text-left text-muted-foreground">Date</th>
-                                            <th className="h-10 px-2 text-left text-muted-foreground">Meal Type</th>
-                                            <th className="h-10 px-2 text-left text-muted-foreground">Qty</th>
-                                            <th className="h-10 px-2 text-left text-muted-foreground">Rate</th>
-                                            <th className="h-10 px-2 text-left text-muted-foreground text-right">Cost</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {bookings.map((booking: any) => (
+                {/* Upcoming Bookings Table */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Upcoming Bookings List
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative w-full overflow-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="h-10 px-2 text-left text-muted-foreground">Date</th>
+                                        <th className="h-10 px-2 text-left text-muted-foreground">Meal</th>
+                                        <th className="h-10 px-2 text-left text-muted-foreground">Qty</th>
+                                        <th className="h-10 px-2 text-left text-muted-foreground">Status</th>
+                                        <th className="h-10 px-2 text-right text-muted-foreground">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bookings.map((booking: any) => {
+                                        const isCancellable = new Date(booking.booking_date) > new Date();
+                                        return (
                                             <tr key={booking.id} className="border-b hover:bg-muted/30 transition-colors">
                                                 <td className="p-2 font-mono text-xs">{booking.booking_date}</td>
                                                 <td className="p-2 capitalize">
@@ -235,128 +253,114 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                                 </td>
                                                 <td className="p-2 font-semibold">{booking.quantity}</td>
                                                 <td className="p-2 text-muted-foreground">
-                                                    {parseFloat(booking.price) > 0 ? `${parseFloat(booking.price).toFixed(2)} TK` : <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Pending</span>}
+                                                    {booking.is_taken ? <Badge variant="default">Taken</Badge> : <Badge variant="outline">Scheduled</Badge>}
                                                 </td>
-                                                <td className="p-2 font-bold text-right">
-                                                    {parseFloat(booking.price) > 0 ? `${(booking.quantity * booking.price).toFixed(2)} TK` : '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {bookings.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="p-6 text-center text-muted-foreground italic">
-                                                    No upcoming bookings found.
+                                                <td className="p-2 text-right">
+                                                    {isCancellable && (
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => cancelBooking(booking.id)}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </td>
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-muted-foreground">
-                                <History className="h-5 w-5 opacity-70" />
-                                Previous Bookings
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="relative w-full overflow-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-xs uppercase text-muted-foreground tracking-wider">
-                                            <th className="h-10 px-2 text-left">Date</th>
-                                            <th className="h-10 px-2 text-left">Meal</th>
-                                            <th className="h-10 px-2 text-left">Qty</th>
-                                            <th className="h-10 px-2 text-left">Rate</th>
-                                            <th className="h-10 px-2 text-right">Cost</th>
+                                        )
+                                    })}
+                                    {bookings.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="p-6 text-center text-muted-foreground italic">
+                                                No upcoming bookings found.
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="opacity-80">
-                                        {pastBookings.map((booking: any) => {
-                                            const isMuttonMeal = (booking.meal_type === 'lunch' || booking.meal_type === 'dinner') && user.student.meat_preference?.toLowerCase() === 'mutton';
-                                            return (
-                                                <tr key={booking.id} className="border-b hover:bg-muted/10 transition-colors">
-                                                    <td className="p-2 font-mono text-xs">{booking.booking_date}</td>
-                                                    <td className="p-2 capitalize text-xs">
-                                                        <div className="flex items-center gap-1">
-                                                            {booking.meal_type}
-                                                            {isMuttonMeal && <Badge variant="outline" className="h-3 text-[8px] border-amber-500 text-amber-600 px-1 py-0 font-normal">Mutton</Badge>}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-2 text-xs">{booking.quantity}</td>
-                                                    <td className="p-2 text-xs">
-                                                        {parseFloat(booking.price) > 0 ? `${parseFloat(booking.price).toFixed(2)} TK` : 'Adjusting...'}
-                                                    </td>
-                                                    <td className="p-2 font-mono text-xs text-right">
-                                                        {parseFloat(booking.price) > 0 ? `${(booking.quantity * booking.price).toFixed(2)} TK` : '-'}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                        {pastBookings.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="p-6 text-center text-muted-foreground italic">
-                                                    No past history found.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
 
-            {/* Floating Action Button for Game */}
-            <div className="fixed bottom-6 right-6 z-40">
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            size="icon"
-                            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white border-none"
-                            title="Take a break with Tic Tac Toe!"
-                        >
-                            <Gamepad2 className="h-7 w-7" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[700px] p-4 max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="text-center font-bold text-lg mb-2 flex items-center justify-center gap-2">
-                                <Gamepad2 className="h-5 w-5 text-indigo-600" />
-                                BAUST Student Game Hub
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="flex justify-center gap-2 mb-4 bg-muted p-1 rounded-lg">
-                            <Button
-                                variant={activeGame === 'tictactoe' ? 'default' : 'ghost'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setActiveGame('tictactoe')}
-                            >
-                                Tic Tac Toe
-                            </Button>
-                            <Button
-                                variant={activeGame === 'snake' ? 'default' : 'ghost'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setActiveGame('snake')}
-                            >
-                                Snake
-                            </Button>
+                {/* Previous Bookings - Simplified for space */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <History className="h-4 w-4 opacity-70" />
+                            Recent History
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative w-full overflow-auto max-h-60">
+                            <table className="w-full text-xs text-muted-foreground">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="h-8 px-2 text-left">Date</th>
+                                        <th className="h-8 px-2 text-left">Meal</th>
+                                        <th className="h-8 px-2 text-left">Qty</th>
+                                        <th className="h-8 px-2 text-right">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pastBookings.map((booking: any) => (
+                                        <tr key={booking.id} className="border-b hover:bg-muted/10">
+                                            <td className="p-2 font-mono">{booking.booking_date}</td>
+                                            <td className="p-2 capitalize">{booking.meal_type}</td>
+                                            <td className="p-2">{booking.quantity}</td>
+                                            <td className="p-2 text-right">
+                                                {parseFloat(booking.price) > 0 ? `${(booking.quantity * booking.price).toFixed(2)}` : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="min-h-[400px] flex items-center justify-center">
-                            {activeGame === 'tictactoe' ? (
-                                <TicTacToe leaderboard={leaderboards.tictactoe} />
-                            ) : (
-                                <Snake leaderboard={leaderboards.snake} />
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                    </CardContent>
+                </Card>
+
+                {/* Leaderboards and Games (Keep existing) */}
+                <div className="fixed bottom-6 right-6 z-40">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button
+                                size="icon"
+                                className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white border-none"
+                                title="Take a break with Tic Tac Toe!"
+                            >
+                                <Gamepad2 className="h-7 w-7" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[700px] p-4 max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle className="text-center font-bold text-lg mb-2 flex items-center justify-center gap-2">
+                                    <Gamepad2 className="h-5 w-5 text-indigo-600" />
+                                    BAUST Student Game Hub
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="flex justify-center gap-2 mb-4 bg-muted p-1 rounded-lg">
+                                <Button
+                                    variant={activeGame === 'tictactoe' ? 'default' : 'ghost'}
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => setActiveGame('tictactoe')}
+                                >
+                                    Tic Tac Toe
+                                </Button>
+                                <Button
+                                    variant={activeGame === 'snake' ? 'default' : 'ghost'}
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => setActiveGame('snake')}
+                                >
+                                    Snake
+                                </Button>
+                            </div>
+                            <div className="min-h-[400px] flex items-center justify-center">
+                                {activeGame === 'tictactoe' ? (
+                                    <TicTacToe leaderboard={leaderboards.tictactoe} />
+                                ) : (
+                                    <Snake leaderboard={leaderboards.snake} />
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
         </AppLayout>
     );

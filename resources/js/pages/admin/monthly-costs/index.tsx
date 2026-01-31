@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertCircle, Save, Calendar, Eye, Receipt, FileText } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Save, Calendar, Eye, Receipt, FileText, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useState } from 'react';
 
@@ -22,6 +22,11 @@ const months = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+interface OtherItem {
+    name: string;
+    amount: number;
+}
+
 export default function MonthlyCostsIndex({ costs, halls, selectedHallId }: { costs: any, halls: any[], selectedHallId: number }) {
     const selectedHall = halls.find(h => h.id === selectedHallId) || halls[0];
 
@@ -32,7 +37,7 @@ export default function MonthlyCostsIndex({ costs, halls, selectedHallId }: { co
         fuel_charge: '',
         spice_charge: '',
         cleaning_charge: '',
-        other_charge: 0,
+        other_items: [] as OtherItem[],
     });
 
     const [selectedCost, setSelectedCost] = useState<any>(null);
@@ -55,6 +60,26 @@ export default function MonthlyCostsIndex({ costs, halls, selectedHallId }: { co
     const updateSettings = (e: React.FormEvent) => {
         e.preventDefault();
         router.put(`/admin/halls/${selectedHallId}/settings`, settingsForm.data);
+    };
+
+    const addOtherItem = () => {
+        setData('other_items', [...data.other_items, { name: '', amount: 0 }]);
+    };
+
+    const removeOtherItem = (index: number) => {
+        const newItems = [...data.other_items];
+        newItems.splice(index, 1);
+        setData('other_items', newItems);
+    };
+
+    const updateOtherItem = (index: number, field: keyof OtherItem, value: string | number) => {
+        const newItems = [...data.other_items];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setData('other_items', newItems);
+    };
+
+    const calculateTotalOther = () => {
+        return data.other_items.reduce((sum, item) => sum + (parseFloat(item.amount as any) || 0), 0);
     };
 
     return (
@@ -135,9 +160,43 @@ export default function MonthlyCostsIndex({ costs, halls, selectedHallId }: { co
                                         <Label>Cleaning Charge (TK)</Label>
                                         <Input type="number" step="0.01" value={data.cleaning_charge} onChange={e => setData('cleaning_charge', e.target.value)} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Other Charges (TK)</Label>
-                                        <Input type="number" step="0.01" value={data.other_charge} onChange={e => setData('other_charge', parseFloat(e.target.value) || 0)} />
+
+                                    <div className="space-y-2 border-t pt-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Other Charges Breakdown</Label>
+                                            <Button type="button" size="sm" variant="ghost" onClick={addOtherItem} className="h-6 gap-1">
+                                                <Plus className="h-3 w-3" /> Add Item
+                                            </Button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {data.other_items.map((item, index) => (
+                                                <div key={index} className="flex gap-2 items-center">
+                                                    <Input
+                                                        placeholder="Item Name"
+                                                        value={item.name}
+                                                        onChange={(e) => updateOtherItem(index, 'name', e.target.value)}
+                                                        className="flex-1"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="Amount"
+                                                        value={item.amount}
+                                                        onChange={(e) => updateOtherItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                                                        className="w-24"
+                                                    />
+                                                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => removeOtherItem(index)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            {data.other_items.length === 0 && (
+                                                <p className="text-xs text-muted-foreground italic">No extra charges added.</p>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-semibold bg-muted/50 p-2 rounded">
+                                            <span>Total Other:</span>
+                                            <span>{calculateTotalOther().toFixed(2)} TK</span>
+                                        </div>
                                     </div>
 
                                     <Button type="submit" className="w-full" disabled={processing}>
@@ -247,6 +306,20 @@ export default function MonthlyCostsIndex({ costs, halls, selectedHallId }: { co
                                     <p className="font-bold">{parseFloat(selectedCost.other_charge).toFixed(2)} TK</p>
                                 </div>
                             </div>
+
+                            {selectedCost.other_items && selectedCost.other_items.length > 0 && (
+                                <div className="bg-muted/20 p-3 rounded-lg border text-sm">
+                                    <p className="text-[10px] uppercase text-muted-foreground font-bold mb-2">Other Items Detail</p>
+                                    <ul className="space-y-1">
+                                        {selectedCost.other_items.map((item: any, idx: number) => (
+                                            <li key={idx} className="flex justify-between">
+                                                <span>{item.name}</span>
+                                                <span className="font-mono">{parseFloat(item.amount).toFixed(2)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-lg flex justify-between items-center">
                                 <div>

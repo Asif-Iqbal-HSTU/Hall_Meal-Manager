@@ -42,8 +42,11 @@ class StudentRegistrationController extends Controller
         $students = $query->get()->map(function ($student) {
             return [
                 'id' => $student->id,
+                'user_id' => $student->user_id,
                 'student_id' => $student->student_id,
                 'name' => $student->user->name,
+                'unique_id' => $student->user->unique_id,
+                'status' => $student->user->status, // Pass status too
                 'email' => $student->user->email,
                 'user_type' => 'student',
                 'department' => $student->department,
@@ -70,6 +73,25 @@ class StudentRegistrationController extends Controller
         ]);
     }
 
+    private function generateUniqueId($hallId)
+    {
+        $hall = \App\Models\Hall::find($hallId);
+        $prefix = $hall->prefix ?? 'MID';
+
+        // Find the last unique_id with this prefix
+        $lastUser = User::where('hall_id', $hallId)
+            ->where('unique_id', 'LIKE', "{$prefix}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastUser && preg_match('/-(\d+)$/', $lastUser->unique_id, $matches)) {
+            $nextNumber = intval($matches[1]) + 1;
+        }
+
+        return $prefix . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -85,16 +107,22 @@ class StudentRegistrationController extends Controller
         ]);
 
         $password = $request->use_id_as_password ? $request->student_id : Str::random(8);
+        $hallId = auth()->user()->role === 'super_admin' ? ($request->hall_id ?: auth()->user()->hall_id) : auth()->user()->hall_id;
+
+        // Generate Unique ID
+        // Note: Race condition possible here strictly speaking, but acceptable for now.
+        $uniqueId = $this->generateUniqueId($hallId);
 
         try {
-            DB::transaction(function () use ($request, $password) {
+            DB::transaction(function () use ($request, $password, $hallId, $uniqueId) {
                 $user = User::create([
                     'name' => $request->name,
                     'email' => $request->email,
                     'password' => Hash::make($password),
-                    'hall_id' => auth()->user()->role === 'super_admin' ? ($request->hall_id ?: auth()->user()->hall_id) : auth()->user()->hall_id,
+                    'hall_id' => $hallId,
                     'role' => 'student',
                     'user_type' => 'student',
+                    'unique_id' => $uniqueId,
                 ]);
 
                 $user->student()->create([
@@ -115,7 +143,7 @@ class StudentRegistrationController extends Controller
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Student registration failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Registration failed. Please try again.'])->withInput();
+            return back()->withErrors(['error' => 'Registration failed. ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -130,22 +158,55 @@ class StudentRegistrationController extends Controller
             'students.*.room_number' => 'required|string',
         ]);
 
-        $hallId = auth()->user()->hall_id;
+        $currentUserHallId = auth()->user()->hall_id;
 
         try {
-            DB::transaction(function () use ($request, $hallId) {
+            DB::transaction(function () use ($request, $currentUserHallId) {
+                // Group by hall to optimize unique ID generation
+                // Just in case super admin sends mixed halls (though UI likely sends one)
+                // Assuming single hall for bulk import for simpler logic unless data contains hall_id
+
+                // If super admin, check if first item has hall_id ?? fallback
+                // The current UI seems to default to selected hall context.
+
+                $hallId = auth()->user()->role === 'super_admin' ? ($request->students[0]['hall_id'] ?? $currentUserHallId) : $currentUserHallId;
+
+                // Get strictly sequentially
+                $hall = \App\Models\Hall::find($hallId);
+                $prefix = $hall->prefix ?? 'MID';
+
+                $lastUser = User::where('hall_id', $hallId)
+                    ->where('unique_id', 'LIKE', "{$prefix}-%")
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                $currentSequence = 0;
+                if ($lastUser && preg_match('/-(\d+)$/', $lastUser->unique_id, $matches)) {
+                    $currentSequence = intval($matches[1]);
+                }
+
                 foreach ($request->students as $data) {
                     if (Student::where('student_id', $data['student_id'])->exists()) {
                         continue;
                     }
 
+                    $currentSequence++;
+                    $uniqueId = $prefix . '-' . str_pad($currentSequence, 3, '0', STR_PAD_LEFT);
+
+                    $targetHallId = auth()->user()->role === 'super_admin' ? ($data['hall_id'] ?? $hallId) : $hallId;
+
+                    // If mixed halls, this logic breaks. Assuming single hall batch.
+                    // If targetHallId != hallId, we should recalculate sequence on the fly or group.
+                    // For now, assume consistent hall_id in batch.
+
                     $user = User::create([
                         'name' => $data['name'],
                         'email' => null,
                         'password' => Hash::make($data['student_id']),
-                        'hall_id' => auth()->user()->role === 'super_admin' ? ($data['hall_id'] ?? auth()->user()->hall_id) : auth()->user()->hall_id,
+                        'hall_id' => $targetHallId,
                         'role' => 'student',
                         'user_type' => 'student',
+                        'unique_id' => $uniqueId,
                     ]);
 
                     $user->student()->create([
@@ -161,7 +222,7 @@ class StudentRegistrationController extends Controller
             return redirect()->route('admin.students.index')->with('success', 'Bulk registration completed.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Bulk registration failed: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Bulk registration failed.']);
+            return back()->withErrors(['error' => 'Bulk registration failed. ' . $e->getMessage()]);
         }
     }
 

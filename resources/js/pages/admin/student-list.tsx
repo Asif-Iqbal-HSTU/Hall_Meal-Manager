@@ -5,10 +5,11 @@ import { type BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import BulkImportModal from '@/components/bulk-import-modal';
 import EditStudentModal from '@/components/edit-student-modal';
 import DepositBalanceModal from '@/components/deposit-balance-modal';
-import { Pencil, Search, Wallet } from 'lucide-react';
+import { Pencil, Search, Wallet, UserMinus, UserCheck, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function StudentList({ students, filters, halls, selectedHallId, memberType }: { students: any[], filters: any, halls?: any[], selectedHallId?: number, memberType: 'student' | 'teacher' | 'staff' }) {
@@ -49,6 +50,15 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
     const handleDeposit = (student: any) => {
         setSelectedStudent(student);
         setDepositModalOpen(true);
+    };
+
+    const toggleStatus = (student: any) => {
+        const action = student.status === 'ex' ? 'Reactivate' : 'Mark as Ex-User';
+        if (confirm(`Are you sure you want to ${action} this member? ${action === 'Mark as Ex-User' ? 'Clearance check will be performed.' : ''}`)) {
+            router.post(route('admin.members.toggle-status', student.user_id), {}, {
+                onError: () => alert('Action failed. Check for dues.')
+            });
+        }
     };
 
     return (
@@ -97,32 +107,23 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b">
+                                        <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">UID</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">ID / Ref</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Name</th>
-                                        <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground text-center">Type</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Dept / Desig</th>
-                                        {(!memberType || memberType === 'student') && (
-                                            <>
-                                                <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Batch</th>
-                                                <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Room</th>
-                                            </>
-                                        )}
+                                        <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Status</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">Balance</th>
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {students.map((student: any) => (
-                                        <tr key={student.id} className="border-b group hover:bg-muted/50 transition-colors">
+                                        <tr key={student.id} className={`border-b group hover:bg-muted/50 transition-colors ${student.status === 'ex' ? 'opacity-60 bg-muted/20' : ''}`}>
+                                            <td className="p-2 font-mono text-xs font-semibold text-primary">{student.unique_id || '-'}</td>
                                             <td className="p-2 font-mono text-xs">{student.student_id}</td>
                                             <td className="p-2">
                                                 <div className="font-medium whitespace-nowrap">{student.name}</div>
                                                 <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">{student.email}</div>
-                                            </td>
-                                            <td className="p-2 text-center">
-                                                <span className="capitalize text-[10px] font-bold px-1.5 py-0.5 rounded border border-muted-foreground/30 text-muted-foreground">
-                                                    {student.user_type}
-                                                </span>
                                             </td>
                                             <td className="p-2">
                                                 <div className="text-xs">{student.department || '-'}</div>
@@ -132,12 +133,15 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                                     </div>
                                                 )}
                                             </td>
-                                            {(!memberType || memberType === 'student') && (
-                                                <>
-                                                    <td className="p-2">{student.batch || '-'}</td>
-                                                    <td className="p-2 text-xs font-mono">{student.room_number || '-'}</td>
-                                                </>
-                                            )}
+                                            <td className="p-2">
+                                                {student.status === 'ex' ? (
+                                                    <Badge variant="secondary">Ex-User</Badge>
+                                                ) : student.status === 'suspended' ? (
+                                                    <Badge variant="destructive">Suspended</Badge>
+                                                ) : (
+                                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">Active</Badge>
+                                                )}
+                                            </td>
                                             <td className="p-2 font-bold whitespace-nowrap">
                                                 <span className={student.balance < 0 ? 'text-red-600' : 'text-green-600'}>
                                                     {student.balance} TK
@@ -145,6 +149,16 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                             </td>
                                             <td className="p-2 text-right">
                                                 <div className="flex gap-1 justify-end">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-amber-600"
+                                                        onClick={() => toggleStatus(student)}
+                                                        title={student.status === 'ex' ? "Reactivate" : "Mark as Ex-User"}
+                                                    >
+                                                        {student.status === 'ex' ? <UserCheck className="h-4 w-4" /> : <UserMinus className="h-4 w-4" />}
+                                                    </Button>
+
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
