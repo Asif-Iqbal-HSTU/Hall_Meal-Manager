@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import admin from '@/routes/admin';
 import { type BreadcrumbItem } from '@/types';
@@ -21,6 +21,20 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function AdminDashboard({ data, currentDate, tomorrowDate, halls, selectedHallId }: { data: any, currentDate: string, tomorrowDate: string, halls: any[], selectedHallId: number }) {
     const [activeDate, setActiveDate] = useState<'today' | 'tomorrow'>('tomorrow');
     const [activeTab, setActiveTab] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
+
+    const isRamadan = (usePage().props as any).isRamadan;
+
+    const getMealName = (type: string) => {
+        if (isRamadan) {
+            const aliases: Record<string, string> = {
+                'breakfast': 'Sehri',
+                'lunch': 'Iftar',
+                'dinner': 'Dinner'
+            };
+            return aliases[type] || type.charAt(0).toUpperCase() + type.slice(1);
+        }
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    };
 
     const currentData = data[activeDate];
     const { mealRequests, summary, meatSummary, date } = currentData;
@@ -74,11 +88,6 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                             size="sm"
                             className="gap-2 border-emerald-200 hover:bg-emerald-50 text-emerald-700"
                             onClick={() => {
-                                const now = new Date();
-                                if (now.getHours() < 16) {
-                                    alert('Preliminary export is available after 4:00 PM. Final list is available after 11:59 PM.');
-                                    return;
-                                }
                                 window.location.href = `/admin/meal-requests/export?hall_id=${selectedHallId}`;
                             }}
                         >
@@ -100,7 +109,7 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                             >
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-center">
-                                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{type}</CardTitle>
+                                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{getMealName(type)}</CardTitle>
                                         <Utensils className={`h-4 w-4 ${isActive ? 'text-emerald-600' : 'text-muted-foreground'}`} />
                                     </div>
                                 </CardHeader>
@@ -109,10 +118,10 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                                     <p className="text-xs text-muted-foreground mb-4">Total Meals Ordered</p>
                                     <div className="flex gap-2">
                                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
-                                            Beef: {meatSummary[type]?.find((m: any) => m.meat_preference === 'beef')?.count || 0}
+                                            {isRamadan ? 'Beef' : 'Beef'}: {meatSummary[type]?.find((m: any) => m.meat_preference === 'beef')?.count || 0}
                                         </Badge>
                                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
-                                            Mutton: {meatSummary[type]?.find((m: any) => m.meat_preference === 'mutton')?.count || 0}
+                                            {isRamadan ? 'Mutton' : 'Mutton'}: {meatSummary[type]?.find((m: any) => m.meat_preference === 'mutton')?.count || 0}
                                         </Badge>
                                     </div>
                                 </CardContent>
@@ -140,7 +149,7 @@ export default function AdminDashboard({ data, currentDate, tomorrowDate, halls,
                                     className={`capitalize h-8 px-4 ${activeTab === type ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                                     onClick={() => setActiveTab(type)}
                                 >
-                                    {type}
+                                    {getMealName(type)}
                                 </Button>
                             ))}
                         </div>

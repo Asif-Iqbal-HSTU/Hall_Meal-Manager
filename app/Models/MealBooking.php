@@ -25,4 +25,17 @@ class MealBooking extends Model
     {
         return $this->belongsTo(Hall::class);
     }
+
+    public static function getMealAlias($type)
+    {
+        if (config('app.is_ramadan')) {
+            $aliases = [
+                'breakfast' => 'Sehri',
+                'lunch' => 'Iftar',
+                'dinner' => 'Dinner',
+            ];
+            return $aliases[$type] ?? ucfirst($type);
+        }
+        return ucfirst($type);
+    }
 }

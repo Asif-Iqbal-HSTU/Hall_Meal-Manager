@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Moon, Sun, Sunrise, Utensils } from 'lucide-react';
@@ -5,6 +6,20 @@ import { useState } from 'react';
 
 export default function BookingCalendar({ bookings }: { bookings: any[] }) {
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    const isRamadan = (usePage().props as any).isRamadan;
+
+    const getMealName = (type: string) => {
+        if (isRamadan) {
+            const aliases: Record<string, string> = {
+                'breakfast': 'Sehri',
+                'lunch': 'Iftar',
+                'dinner': 'Dinner'
+            };
+            return aliases[type] || type.charAt(0).toUpperCase() + type.slice(1);
+        }
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    };
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -40,7 +55,7 @@ export default function BookingCalendar({ bookings }: { bookings: any[] }) {
                             {booking.meal_type === 'breakfast' && <Sunrise className="h-3 w-3 text-orange-500" />}
                             {booking.meal_type === 'lunch' && <Utensils className="h-3 w-3 text-blue-500" />}
                             {booking.meal_type === 'dinner' && <Moon className="h-3 w-3 text-indigo-500" />}
-                            <span className="truncate capitalize">{booking.meal_type}</span>
+                            <span className="truncate">{getMealName(booking.meal_type)}</span>
                         </div>
                     ))}
                 </div>

@@ -1,5 +1,6 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import admin from '@/routes/admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +14,23 @@ export default function DailyMealsIndex({ users, date, mealType, auth }: { users
     const [searchTerm, setSearchTerm] = useState('');
 
     const breadcrumbs = [
-        { title: 'Admin Dashboard', href: route('admin.dashboard') },
-        { title: 'Daily Meals', href: route('admin.daily-meals.index') },
+        { title: 'Admin Dashboard', href: admin.dashboard().url },
+        { title: 'Daily Meals', href: admin.dailyMeals.index().url },
     ];
+
+    const isRamadan = (usePage().props as any).isRamadan;
+
+    const getMealName = (type: string) => {
+        if (isRamadan) {
+            const aliases: Record<string, string> = {
+                'breakfast': 'Sehri',
+                'lunch': 'Iftar',
+                'dinner': 'Dinner'
+            };
+            return aliases[type] || type.charAt(0).toUpperCase() + type.slice(1);
+        }
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    };
 
     const { data, setData, get } = useForm({
         date: date,
@@ -24,11 +39,11 @@ export default function DailyMealsIndex({ users, date, mealType, auth }: { users
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
-        get(route('admin.daily-meals.index'), { preserveState: true });
+        get(admin.dailyMeals.index().url, { preserveState: true });
     };
 
     const toggleStatus = (user: any, checked: boolean) => {
-        router.post(route('admin.daily-meals.toggle'), {
+        router.post(admin.dailyMeals.toggle().url, {
             user_id: user.id,
             date: data.date,
             meal_type: data.meal_type,
@@ -75,9 +90,9 @@ export default function DailyMealsIndex({ users, date, mealType, auth }: { users
                                     value={data.meal_type}
                                     onChange={(e) => setData('meal_type', e.target.value)}
                                 >
-                                    <option value="breakfast">Breakfast</option>
-                                    <option value="lunch">Lunch</option>
-                                    <option value="dinner">Dinner</option>
+                                    <option value="breakfast">{getMealName('breakfast')}</option>
+                                    <option value="lunch">{getMealName('lunch')}</option>
+                                    <option value="dinner">{getMealName('dinner')}</option>
                                 </select>
                             </div>
                             <Button type="submit">

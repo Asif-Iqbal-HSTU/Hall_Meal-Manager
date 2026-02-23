@@ -131,8 +131,16 @@ class MealBookingController extends Controller
             $endDate = Carbon::parse($request->end_date);
 
             DB::transaction(function () use ($request, $startDate, $endDate) {
+                $tomorrow = Carbon::tomorrow()->toDateString();
+                $isLateForTomorrow = now()->hour >= 16;
+
                 for ($date = $startDate; $date->lte($endDate); $date->addDay()) {
                     $dateString = $date->toDateString();
+
+                    // Skip tomorrow if it's after 4 PM
+                    if ($dateString === $tomorrow && $isLateForTomorrow) {
+                        continue;
+                    }
 
                     $meals = [
                         'breakfast' => $request->breakfast,
@@ -177,6 +185,9 @@ class MealBookingController extends Controller
             ]);
 
             $nextDay = Carbon::tomorrow()->toDateString();
+            if (now()->hour >= 16) {
+                return back()->withErrors(['error' => 'Cannot book for tomorrow after 04:00 PM today.']);
+            }
 
             DB::transaction(function () use ($request, $nextDay) {
                 MealBooking::updateOrCreate(
@@ -207,7 +218,13 @@ class MealBookingController extends Controller
         // If booking is for Feb 2, can cancel on Feb 1.
         // So booking_date > today.
         if ($booking->booking_date <= now()->toDateString()) {
-            return back()->withErrors(['error' => 'Cannot cancel meals for today or past dates. Cancellation allowed until the day before.']);
+            return back()->withErrors(['error' => 'Cannot cancel meals for today or past dates.']);
+        }
+
+        // New restriction: Cannot change next day's meal after 4 PM
+        $tomorrow = Carbon::tomorrow()->toDateString();
+        if ($booking->booking_date === $tomorrow && now()->hour >= 16) {
+            return back()->withErrors(['error' => 'Cannot cancel meals for tomorrow after 04:00 PM today.']);
         }
 
         $booking->delete();

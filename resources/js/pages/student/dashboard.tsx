@@ -57,6 +57,20 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
     const isDue = user.student.balance < 0;
     const absBalance = Math.abs(user.student.balance);
 
+    const isRamadan = (usePage().props as any).isRamadan;
+
+    const getMealName = (type: string) => {
+        if (isRamadan) {
+            const aliases: Record<string, string> = {
+                'breakfast': 'Sehri',
+                'lunch': 'Iftar',
+                'dinner': 'Dinner'
+            };
+            return aliases[type] || type.charAt(0).toUpperCase() + type.slice(1);
+        }
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Student Dashboard" />
@@ -115,9 +129,9 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.total_meals} Units</div>
                             <div className="flex gap-2 mt-1">
-                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title="Breakfast">B: {stats.meal_counts.breakfast}</span>
-                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title="Lunch">L: {stats.meal_counts.lunch}</span>
-                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title="Dinner">D: {stats.meal_counts.dinner}</span>
+                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title={getMealName('breakfast')}>{getMealName('breakfast')[0]}: {stats.meal_counts.breakfast}</span>
+                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title={getMealName('lunch')}>{getMealName('lunch')[0]}: {stats.meal_counts.lunch}</span>
+                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded" title={getMealName('dinner')}>{getMealName('dinner')[0]}: {stats.meal_counts.dinner}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -160,7 +174,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                     <Label className="text-xs uppercase tracking-wider text-muted-foreground">Daily Meal Quantities</Label>
                                     <div className="grid grid-cols-3 gap-2">
                                         <div>
-                                            <Label className="text-[10px]" htmlFor="breakfast">Breakfast</Label>
+                                            <Label className="text-[10px]" htmlFor="breakfast">{getMealName('breakfast')}</Label>
                                             <Input
                                                 id="breakfast"
                                                 type="number"
@@ -171,7 +185,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-[10px]" htmlFor="lunch">Lunch</Label>
+                                            <Label className="text-[10px]" htmlFor="lunch">{getMealName('lunch')}</Label>
                                             <Input
                                                 id="lunch"
                                                 type="number"
@@ -182,7 +196,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-[10px]" htmlFor="dinner">Dinner</Label>
+                                            <Label className="text-[10px]" htmlFor="dinner">{getMealName('dinner')}</Label>
                                             <Input
                                                 id="dinner"
                                                 type="number"
@@ -248,7 +262,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                                         {booking.meal_type === 'breakfast' && <Coffee className="h-3 w-3" />}
                                                         {booking.meal_type === 'lunch' && <Utensils className="h-3 w-3" />}
                                                         {booking.meal_type === 'dinner' && <Moon className="h-3 w-3" />}
-                                                        {booking.meal_type}
+                                                        {getMealName(booking.meal_type)}
                                                     </div>
                                                 </td>
                                                 <td className="p-2 font-semibold">{booking.quantity}</td>
@@ -301,7 +315,7 @@ export default function StudentDashboard({ user, bookings, pastBookings, monthly
                                     {pastBookings.map((booking: any) => (
                                         <tr key={booking.id} className="border-b hover:bg-muted/10">
                                             <td className="p-2 font-mono">{booking.booking_date}</td>
-                                            <td className="p-2 capitalize">{booking.meal_type}</td>
+                                            <td className="p-2">{getMealName(booking.meal_type)}</td>
                                             <td className="p-2">{booking.quantity}</td>
                                             <td className="p-2 text-right">
                                                 {parseFloat(booking.price) > 0 ? `${(booking.quantity * booking.price).toFixed(2)}` : '-'}

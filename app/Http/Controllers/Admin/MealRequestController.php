@@ -111,12 +111,6 @@ class MealRequestController extends Controller
         $hall = Hall::findOrFail($hallId);
         $tomorrow = Carbon::tomorrow()->toDateString();
 
-        // Check window constraint (after 4 PM for preliminary list)
-        $now = Carbon::now();
-        if ($now->hour < 16) {
-            return back()->with('error', 'Preliminary export is available after 4:00 PM. Final list is available after 11:59 PM.');
-        }
-
         $mealTypes = ['breakfast', 'lunch', 'dinner'];
         $data = [];
 
@@ -130,16 +124,19 @@ class MealRequestController extends Controller
                     $user = $booking->user;
                     $memberId = 'N/A';
                     $preference = 'beef';
+                    $details = '';
 
                     if ($user->user_type === 'student' && $user->student) {
-                        $memberId = $user->student->student_id;
+                        $memberId = $user->unique_id;
                         $preference = $user->student->meat_preference;
                     } elseif ($user->user_type === 'teacher' && $user->teacher) {
-                        $memberId = $user->teacher->teacher_id;
+                        $memberId = $user->teacher->teacher_id ?? $user->unique_id;
                         $preference = $user->teacher->meat_preference;
+                        $details = ($user->teacher->designation ?? '') . ',' . ($user->teacher->department ?? '');
                     } elseif ($user->user_type === 'staff' && $user->staff) {
-                        $memberId = $user->staff->staff_id;
-                        $preference = $user->staff->meat_preference;
+                        $memberId = $user->unique_id;
+                        $preference = $user->staff->meat_preference ?? 'beef';
+                        $details = ($user->staff->designation ?? '') . ',' . $hall->name;
                     }
 
                     return [
@@ -148,15 +145,20 @@ class MealRequestController extends Controller
                         'user_type' => $user->user_type,
                         'meat_preference' => $preference,
                         'quantity' => $booking->quantity,
+                        'details' => trim($details, ','),
                     ];
                 });
 
-            $meatCounts = $bookings->groupBy('meat_preference')->map->sum('quantity');
+            $students = $bookings->filter(fn($b) => $b['user_type'] === 'student')->values();
+            $others = $bookings->filter(fn($b) => $b['user_type'] !== 'student')->values();
 
             $data[$type] = [
-                'bookings' => $bookings,
-                'beef_count' => $meatCounts->get('beef', 0),
-                'mutton_count' => $meatCounts->get('mutton', 0),
+                'students' => $students,
+                'others' => $others,
+                'student_beef' => $students->where('meat_preference', 'beef')->sum('quantity'),
+                'student_mutton' => $students->where('meat_preference', 'mutton')->sum('quantity'),
+                'other_beef' => $others->where('meat_preference', 'beef')->sum('quantity'),
+                'other_mutton' => $others->where('meat_preference', 'mutton')->sum('quantity'),
                 'total_count' => $bookings->sum('quantity'),
             ];
         }
