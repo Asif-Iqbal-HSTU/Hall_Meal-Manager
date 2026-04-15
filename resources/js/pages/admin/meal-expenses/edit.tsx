@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 
-export default function MealExpenseEdit({ expense, halls }: { expense: any, halls: any[] }) {
+export default function MealExpenseEdit({ expense, halls, products = [] }: { expense: any, halls: any[], products?: any[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Meal Expenses',
@@ -44,6 +44,21 @@ export default function MealExpenseEdit({ expense, halls }: { expense: any, hall
     const updateItem = (index: number, field: string, value: string) => {
         const newItems = [...data.items] as any;
         newItems[index][field] = value;
+        
+        // Auto-fill unit price if the name matches a product from the database
+        if (field === 'name') {
+            const matchedProduct = products.find(p => p.name_bn === value);
+            if (matchedProduct && matchedProduct.unit_price) {
+                newItems[index]['unit_price'] = matchedProduct.unit_price;
+            } else {
+                // Also check if entered as "name_bn (name_en)"
+                const matchedCombined = products.find(p => `${p.name_bn} (${p.name_en})` === value);
+                if (matchedCombined && matchedCombined.unit_price) {
+                    newItems[index]['unit_price'] = matchedCombined.unit_price;
+                }
+            }
+        }
+        
         setData('items', newItems);
     };
 
@@ -142,15 +157,21 @@ export default function MealExpenseEdit({ expense, halls }: { expense: any, hall
                             </Button>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {data.items.map((item, index) => (
+                            {data.items.map((item: any, index: number) => (
                                 <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-b pb-4 last:border-0 last:pb-0">
                                     <div className="space-y-2 md:col-span-1">
                                         <Label>Item Name</Label>
                                         <Input
-                                            placeholder="e.g. Rice, Chicken"
+                                            list="product-list"
+                                            placeholder="Type to search or enter custom..."
                                             value={item.name}
                                             onChange={(e) => updateItem(index, 'name', e.target.value)}
                                         />
+                                        <datalist id="product-list">
+                                            {products?.map((product, pIndex) => (
+                                                <option key={pIndex} value={`${product.name_bn} (${product.name_en})`} />
+                                            ))}
+                                        </datalist>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Unit Price (TK)</Label>

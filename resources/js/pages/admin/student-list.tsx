@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import BulkImportModal from '@/components/bulk-import-modal';
 import EditStudentModal from '@/components/edit-student-modal';
 import DepositBalanceModal from '@/components/deposit-balance-modal';
-import { Pencil, Search, Wallet, UserMinus, UserCheck, ShieldAlert, Printer, ChevronUp, ChevronDown } from 'lucide-react';
+import { Pencil, Search, Wallet, UserMinus, UserCheck, ShieldAlert, ShieldCheck, ShieldX, Printer, FileSpreadsheet, CreditCard, ChevronUp, ChevronDown, Utensils, UtensilsCrossed } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function StudentList({ students, filters, halls, selectedHallId, memberType }: { students: any[], filters: any, halls?: any[], selectedHallId?: number, memberType: 'student' | 'teacher' | 'staff' }) {
@@ -98,6 +98,17 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
         }
     };
 
+    const toggleMeal = (student: any) => {
+        const action = student.meal_enabled ? 'Disable' : 'Enable';
+        if (confirm(`Are you sure you want to ${action} meal requests for ${student.name}?`)) {
+            router.post(`/admin/students/${student.id}/toggle-meal`, {}, {
+                onSuccess: () => {
+                    // Success handling if needed
+                }
+            });
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Student List" />
@@ -135,6 +146,26 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                 <Printer className="h-4 w-4" />
                                 Print List
                             </Button>
+                            {memberType === 'student' && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => window.open(`/admin/students/export/excel?search=${search}&hall_id=${selectedHallId}`, '_blank')}
+                                        className="flex items-center gap-2 text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800"
+                                    >
+                                        <FileSpreadsheet className="h-4 w-4" />
+                                        Export Excel
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => window.open(`/admin/students/meal-cards?search=${search}&hall_id=${selectedHallId}`, '_blank')}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <CreditCard className="h-4 w-4" />
+                                        Generate Meal Cards
+                                    </Button>
+                                </>
+                            )}
                             <BulkImportModal hallId={selectedHallId} />
                             <Button asChild>
                                 <Link href={admin.students.create().url}>Register New Member</Link>
@@ -158,6 +189,11 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground cursor-pointer hover:bg-muted/50" onClick={() => requestSort('student_id')}>
                                             <div className="flex items-center">ID / Ref {getSortIcon('student_id')}</div>
                                         </th>
+                                        {memberType === 'student' && (
+                                            <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground cursor-pointer hover:bg-muted/50" onClick={() => requestSort('batch')}>
+                                                <div className="flex items-center">Batch {getSortIcon('batch')}</div>
+                                            </th>
+                                        )}
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground cursor-pointer hover:bg-muted/50" onClick={() => requestSort('name')}>
                                             <div className="flex items-center">Name {getSortIcon('name')}</div>
                                         </th>
@@ -167,6 +203,11 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground cursor-pointer hover:bg-muted/50" onClick={() => requestSort('status')}>
                                             <div className="flex items-center">Status {getSortIcon('status')}</div>
                                         </th>
+                                        {memberType === 'student' && (
+                                            <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground">
+                                                Meal Access
+                                            </th>
+                                        )}
                                         <th className="h-10 px-2 text-left text-xs uppercase text-muted-foreground cursor-pointer hover:bg-muted/50" onClick={() => requestSort('balance')}>
                                             <div className="flex items-center">Balance {getSortIcon('balance')}</div>
                                         </th>
@@ -178,6 +219,9 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                         <tr key={student.id} className={`border-b group hover:bg-muted/50 transition-colors ${student.status === 'ex' ? 'opacity-60 bg-muted/20' : ''}`}>
                                             <td className="p-2 font-mono text-xs font-semibold text-primary">{student.unique_id || '-'}</td>
                                             <td className="p-2 font-mono text-xs">{student.student_id}</td>
+                                            {memberType === 'student' && (
+                                                <td className="p-2 text-xs font-medium">{student.batch || '-'}</td>
+                                            )}
                                             <td className="p-2">
                                                 <div className="font-medium whitespace-nowrap">{student.name}</div>
                                                 <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">{student.email}</div>
@@ -199,6 +243,15 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                                     <Badge variant="default" className="bg-green-600 hover:bg-green-700">Active</Badge>
                                                 )}
                                             </td>
+                                            {memberType === 'student' && (
+                                                <td className="p-2">
+                                                    {student.meal_enabled ? (
+                                                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Enabled</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Disabled</Badge>
+                                                    )}
+                                                </td>
+                                            )}
                                             <td className="p-2 font-bold whitespace-nowrap">
                                                 <span className={student.balance < 0 ? 'text-red-600' : 'text-green-600'}>
                                                     {student.balance} TK
@@ -206,6 +259,17 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                             </td>
                                             <td className="p-2 text-right">
                                                 <div className="flex gap-1 justify-end">
+                                                    {memberType === 'student' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className={`h-8 w-8 ${student.meal_enabled ? 'text-red-600' : 'text-green-600'}`}
+                                                            onClick={() => toggleMeal(student)}
+                                                            title={student.meal_enabled ? "Disable Meal" : "Enable Meal"}
+                                                        >
+                                                            {student.meal_enabled ? <UtensilsCrossed className="h-4 w-4" /> : <Utensils className="h-4 w-4" />}
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -240,7 +304,7 @@ export default function StudentList({ students, filters, halls, selectedHallId, 
                                     ))}
                                     {students.length === 0 && (
                                         <tr>
-                                            <td colSpan={memberType === 'student' ? 9 : 7} className="p-4 text-center text-muted-foreground">
+                                            <td colSpan={memberType === 'student' ? 8 : 7} className="p-4 text-center text-muted-foreground">
                                                 No {memberTypeTitle.toLowerCase()} found.
                                             </td>
                                         </tr>

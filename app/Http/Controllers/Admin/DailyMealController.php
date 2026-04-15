@@ -55,6 +55,11 @@ class DailyMealController extends Controller
             'is_taken' => 'required|boolean',
         ]);
 
+        $user = User::with('student')->findOrFail($request->user_id);
+        if ($user->student && $user->student->meal_enabled === false) {
+            return back()->withErrors(['error' => 'Meal requests are disabled for this student.']);
+        }
+
         // If booking exists, update it. 
         // If not and we are setting is_taken=true, create it?
         // Usually if they didn't book, they can't eat without penalty or distinct flow.

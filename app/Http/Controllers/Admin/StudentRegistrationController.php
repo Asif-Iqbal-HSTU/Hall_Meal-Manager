@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\MemberWelcomeMail;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\StudentsExport;
 use Inertia\Inertia;
 
 class StudentRegistrationController extends Controller
@@ -54,6 +56,7 @@ class StudentRegistrationController extends Controller
                 'room_number' => $student->room_number,
                 'meat_preference' => $student->meat_preference,
                 'balance' => $student->balance,
+                'meal_enabled' => (bool) $student->meal_enabled,
             ];
         });
 
@@ -273,6 +276,65 @@ class StudentRegistrationController extends Controller
         ]);
 
         return $pdf->download('Student-List-' . ($hall->name ?? 'All') . '.pdf');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $user = auth()->user();
+        $hallId = $user->hall_id;
+        $search = $request->input('search');
+
+        if ($user->role === 'super_admin') {
+            $hallId = $request->query('hall_id', \App\Models\Hall::first()?->id);
+        }
+
+        $hall = \App\Models\Hall::findOrFail($hallId);
+
+        return Excel::download(new StudentsExport($hallId, $search), 'Student-List-' . ($hall->name ?? 'All') . '.xlsx');
+    }
+
+    public function exportMealCards(Request $request)
+    {
+        $user = auth()->user();
+        $hallId = $user->hall_id;
+        $search = $request->input('search');
+
+        if ($user->role === 'super_admin') {
+            $hallId = $request->query('hall_id', \App\Models\Hall::first()?->id);
+        }
+
+        $hall = \App\Models\Hall::findOrFail($hallId);
+
+        $query = Student::with('user')
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->where('users.hall_id', $hallId)
+            ->select('students.*');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('students.student_id', 'like', "%{$search}%")
+                    ->orWhere('users.name', 'like', "%{$search}%")
+                    ->orWhere('users.unique_id', 'like', "%{$search}%");
+            });
+        }
+
+        $students = $query->orderBy('users.unique_id', 'asc')->get()->map(function($student) {
+            return [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'name' => $student->user->name,
+                'unique_id' => $student->user->unique_id,
+                'department' => $student->department,
+                'batch' => $student->batch,
+                'meat_preference' => $student->meat_preference,
+                'meal_enabled' => (bool)$student->meal_enabled,
+            ];
+        });
+
+        return Inertia::render('admin/meal-cards-preview', [
+            'students' => $students,
+            'hall' => $hall,
+        ]);
     }
 
     public function update(Request $request, Student $student)

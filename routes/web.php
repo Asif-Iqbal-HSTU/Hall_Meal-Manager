@@ -40,6 +40,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('students/bulk', [StudentRegistrationController::class, 'bulkStore'])->name('students.bulk');
         Route::post('students/bulk-validate', [StudentRegistrationController::class, 'validateBulk'])->name('students.bulk-validate');
         Route::get('students/export', [StudentRegistrationController::class, 'exportPdf'])->name('students.export');
+        Route::get('students/export/excel', [StudentRegistrationController::class, 'exportExcel'])->name('students.export-excel');
+        Route::get('students/meal-cards', [StudentRegistrationController::class, 'exportMealCards'])->name('students.meal-cards');
         Route::put('students/{student}', [StudentRegistrationController::class, 'update'])->name('students.update');
 
         // Teachers
@@ -74,11 +76,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Status Management
         Route::post('members/{user}/toggle-status', [\App\Http\Controllers\Admin\MemberStatusController::class, 'toggle'])->name('members.toggle-status');
+        Route::post('students/{student}/toggle-meal', [\App\Http\Controllers\Admin\MemberStatusController::class, 'toggleMeal'])->name('students.toggle-meal');
 
         // Manual Booking
         Route::get('manual-booking', [\App\Http\Controllers\Admin\ManualBookingController::class, 'index'])->name('manual-booking.index');
         Route::get('manual-booking/search', [\App\Http\Controllers\Admin\ManualBookingController::class, 'searchStudent'])->name('manual-booking.search');
+        Route::get('manual-booking/bookings/{user}', [\App\Http\Controllers\Admin\ManualBookingController::class, 'fetchBookings'])->name('manual-booking.bookings');
         Route::post('manual-booking', [\App\Http\Controllers\Admin\ManualBookingController::class, 'store'])->name('manual-booking.store');
+
+        // Reports
+        Route::get('reports/compact-meal-list', [\App\Http\Controllers\Admin\MealReportController::class, 'compactList'])->name('reports.compact-meal-list');
 
         // Student Password Reset
         Route::get('student-password', [\App\Http\Controllers\Admin\StudentPasswordController::class, 'index'])->name('student-password.index');

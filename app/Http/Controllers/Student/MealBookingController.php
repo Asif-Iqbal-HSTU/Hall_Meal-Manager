@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\MealBooking;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Inertia\Inertia;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class MealBookingController extends Controller
 {
@@ -37,7 +37,7 @@ class MealBookingController extends Controller
                 'breakfast' => MealBooking::where('user_id', $userId)->where('meal_type', 'breakfast')->sum('quantity'),
                 'lunch' => MealBooking::where('user_id', $userId)->where('meal_type', 'lunch')->sum('quantity'),
                 'dinner' => MealBooking::where('user_id', $userId)->where('meal_type', 'dinner')->sum('quantity'),
-            ]
+            ],
         ];
 
         // Fetch last 3 finalized rates for each meal type
@@ -90,14 +90,14 @@ class MealBookingController extends Controller
         $startTime = Carbon::createFromTime(8, 0, 0);
         $endTime = Carbon::createFromTime(23, 59, 59);
 
-        if (!$now->between($startTime, $endTime)) {
+        if (! $now->between($startTime, $endTime)) {
             return back()->withErrors(['error' => 'Booking is only allowed between 08 AM and 11:59 PM.']);
         }
 
         // Feature 7: Payment Enforcement
         // If balance < 0 and last payment was > 2 months ago (or never)
         // AND not overridden by admin (need a flag? "Admin can on the things again")
-        // I'll assume "status" = "suspended" handles the admin block. 
+        // I'll assume "status" = "suspended" handles the admin block.
         // If "Admin can on things again", admin sets status = 'active'.
         // So I just check status.
 
@@ -105,13 +105,17 @@ class MealBookingController extends Controller
             return back()->withErrors(['error' => 'Account suspended due to dues. Please contact admin.']);
         }
 
+
         // Auto-check for "2 months no payment"
         $student = auth()->user()->student; // Assuming student for now
+        if ($student && $student->meal_enabled === false) {
+            return back()->withErrors(['error' => 'Admin has disabled your meal requests. Please contact the authority.']);
+        }
         if ($student && $student->balance < 0) {
             $lastPayment = \App\Models\Payment::where('student_id', $student->id)->latest()->first();
             $twoMonthsAgo = Carbon::now()->subMonths(2);
 
-            if (!$lastPayment || $lastPayment->created_at < $twoMonthsAgo) {
+            if (! $lastPayment || $lastPayment->created_at < $twoMonthsAgo) {
                 // Technically we should suspend them here or just block booking?
                 // "cannot book further".
                 return back()->withErrors(['error' => 'Booking blocked. Dues pending for over 2 months. Please clear dues.']);
@@ -132,12 +136,12 @@ class MealBookingController extends Controller
 
             DB::transaction(function () use ($request, $startDate, $endDate) {
                 $tomorrow = Carbon::tomorrow()->toDateString();
-                $isLateForTomorrow = now()->hour >= 22;
+                $isLateForTomorrow = now()->hour >= 16;
 
                 for ($date = $startDate; $date->lte($endDate); $date->addDay()) {
                     $dateString = $date->toDateString();
 
-                    // Skip tomorrow if it's after 10 PM
+                    // Skip tomorrow if it's after 4 PM
                     if ($dateString === $tomorrow && $isLateForTomorrow) {
                         continue;
                     }
@@ -185,8 +189,8 @@ class MealBookingController extends Controller
             ]);
 
             $nextDay = Carbon::tomorrow()->toDateString();
-            if (now()->hour >= 22) {
-                return back()->withErrors(['error' => 'Cannot book for tomorrow after 10:00 PM today.']);
+            if (now()->hour >= 16) {
+                return back()->withErrors(['error' => 'Cannot book for tomorrow after 4:00 PM today.']);
             }
 
             DB::transaction(function () use ($request, $nextDay) {
@@ -221,10 +225,10 @@ class MealBookingController extends Controller
             return back()->withErrors(['error' => 'Cannot cancel meals for today or past dates.']);
         }
 
-        // New restriction: Cannot change next day's meal after 10 PM
+        // New restriction: Cannot change next day's meal after 4 PM
         $tomorrow = Carbon::tomorrow()->toDateString();
-        if ($booking->booking_date === $tomorrow && now()->hour >= 22) {
-            return back()->withErrors(['error' => 'Cannot cancel meals for tomorrow after 10:00 PM today.']);
+        if ($booking->booking_date === $tomorrow && now()->hour >= 16) {
+            return back()->withErrors(['error' => 'Cannot cancel meals for tomorrow after 4:00 PM today.']);
         }
 
         $booking->delete();

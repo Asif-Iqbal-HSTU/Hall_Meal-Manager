@@ -17,6 +17,11 @@ class Student extends Model
         'room_number',
         'meat_preference',
         'balance',
+        'meal_enabled',
+    ];
+
+    protected $casts = [
+        'meal_enabled' => 'boolean',
     ];
 
     public function user()

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Calendar, Folder, Key, LayoutGrid, Users, Utensils } from 'lucide-react';
+import { BookOpen, Calendar, FileText, Folder, Key, LayoutGrid, Users, Utensils } from 'lucide-react';
 
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -69,6 +69,11 @@ export function AppSidebar() {
             title: 'Change Password',
             href: '/admin/student-password',
             icon: Key,
+        });
+        mainNavItems.push({
+            title: 'Meal Report',
+            href: '/admin/reports/compact-meal-list',
+            icon: FileText,
         });
     }
 

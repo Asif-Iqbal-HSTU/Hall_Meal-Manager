@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DailyMealCost;
 use App\Models\MealBooking;
 use App\Models\Hall;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -37,6 +38,7 @@ class MealExpenseController extends Controller
     {
         return Inertia::render('admin/meal-expenses/create', [
             'halls' => auth()->user()->role === 'super_admin' ? Hall::all() : [],
+            'products' => Product::all(),
         ]);
     }
 
@@ -98,6 +100,7 @@ class MealExpenseController extends Controller
         return Inertia::render('admin/meal-expenses/edit', [
             'expense' => $dailyCost->load('expenseItems'),
             'halls' => auth()->user()->role === 'super_admin' ? Hall::all() : [],
+            'products' => Product::all(),
         ]);
     }
 

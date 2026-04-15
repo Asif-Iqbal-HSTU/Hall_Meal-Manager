@@ -19,9 +19,9 @@ class ManualBookingController extends Controller
         $hallId = $user->hall_id;
 
         $teachers = \App\Models\Teacher::with('user')
-            ->whereHas('user', fn($q) => $q->where('hall_id', $hallId))
+            ->whereHas('user', fn ($q) => $q->where('hall_id', $hallId))
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->user_id,
                 'name' => $t->user->name,
                 'teacher_id' => $t->teacher_id,
@@ -32,9 +32,9 @@ class ManualBookingController extends Controller
             ]);
 
         $staff = \App\Models\Staff::with('user')
-            ->whereHas('user', fn($q) => $q->where('hall_id', $hallId))
+            ->whereHas('user', fn ($q) => $q->where('hall_id', $hallId))
             ->get()
-            ->map(fn($s) => [
+            ->map(fn ($s) => [
                 'id' => $s->user_id,
                 'name' => $s->user->name,
                 'staff_id' => $s->staff_id,
@@ -67,19 +67,39 @@ class ManualBookingController extends Controller
 
         $student = $query->first();
 
-        if (!$student) {
+        if (! $student) {
             return response()->json([
                 'exists' => false,
-                'message' => 'Student not found.'
+                'message' => 'Student not found.',
             ]);
         }
+
+        $bookings = MealBooking::where('user_id', $student->user_id)
+            ->where('booking_date', '>=', now()->subMonths(1)->toDateString())
+            ->orderBy('booking_date', 'desc')
+            ->get();
 
         return response()->json([
             'exists' => true,
             'student' => $student,
             'user' => $student->user,
             'hall' => $student->user->hall,
+            'bookings' => $bookings,
         ]);
+    }
+
+    public function fetchBookings(User $user)
+    {
+        if (auth()->user()->hall_id !== $user->hall_id && auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $bookings = MealBooking::where('user_id', $user->id)
+            ->where('booking_date', '>=', now()->subMonths(1)->toDateString())
+            ->orderBy('booking_date', 'desc')
+            ->get();
+
+        return response()->json($bookings);
     }
 
     public function store(Request $request)
@@ -94,17 +114,22 @@ class ManualBookingController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
+
+        if ($user->student && $user->student->meal_enabled === false) {
+            return back()->withErrors(['error' => 'Meal requests are disabled for this student.']);
+        }
+
         $startDate = Carbon::parse($request->start_date);
         $endDate = Carbon::parse($request->end_date);
 
         DB::transaction(function () use ($request, $startDate, $endDate, $user) {
             $tomorrow = Carbon::tomorrow()->toDateString();
-            $isLateForTomorrow = now()->hour >= 22;
+            $isLateForTomorrow = now()->hour >= 16;
 
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
                 $dateString = $date->toDateString();
 
-                // Skip tomorrow if it's after 10 PM
+                // Skip tomorrow if it's after 4 PM
                 if ($dateString === $tomorrow && $isLateForTomorrow) {
                     continue;
                 }
@@ -139,6 +164,6 @@ class ManualBookingController extends Controller
             }
         });
 
-        return back()->with('success', 'Manual booking completed. Note: Tomorrow\'s meals are skipped if it\'s after 10 PM.');
+        return back()->with('success', 'Manual booking completed. Note: Tomorrow\'s meals are skipped if it\'s after 4 PM.');
     }
 }

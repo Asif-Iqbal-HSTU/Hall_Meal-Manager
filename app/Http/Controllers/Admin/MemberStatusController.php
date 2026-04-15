@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -36,5 +37,22 @@ class MemberStatusController extends Controller
 
         $user->update(['status' => 'ex']);
         return back()->with('success', 'Member marked as Ex-User (Clearance Passed).');
+    }
+
+    public function toggleMeal(Student $student)
+    {
+        $user = $student->user;
+        if (auth()->user()->hall_id !== $user->hall_id && auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $newState = !$student->meal_enabled;
+        $student->update(['meal_enabled' => $newState]);
+
+        $message = $newState
+            ? 'Meal requests enabled for ' . $user->name . '.'
+            : 'Meal requests disabled for ' . $user->name . '.';
+
+        return back()->with('success', $message);
     }
 }
